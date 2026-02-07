@@ -273,8 +273,8 @@ export default function ShoppingScreen() {
         />
       </View>
 
-      <Modal visible={showAddForm} animationType="slide" onRequestClose={() => setShowAddForm(false)}>
-        <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+      <Modal visible={showAddForm} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAddForm(false)}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <Pressable
               onPress={() => setShowAddForm(false)}
@@ -296,98 +296,109 @@ export default function ShoppingScreen() {
               <Text style={styles.saveButtonText}>保存</Text>
             </Pressable>
           </View>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : undefined}
-              style={{ flex: 1 }}
-            >
-              <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
-          <TextInput
-            placeholder="商品名"
-            placeholderTextColor={colors.muted}
-            value={newName}
-            onChangeText={setNewName}
-            style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-          />
-          <View style={styles.formRow}>
-            <TextInput
-              placeholder="数量"
-              placeholderTextColor={colors.muted}
-              value={newQuantity}
-              onChangeText={setNewQuantity}
-              keyboardType="number-pad"
-              style={[styles.inputSmall, { color: colors.foreground, borderColor: colors.border }]}
-            />
-            <TextInput
-              placeholder="価格（任意）"
-              placeholderTextColor={colors.muted}
-              value={newPrice}
-              onChangeText={setNewPrice}
-              keyboardType="number-pad"
-              style={[styles.inputSmall, { color: colors.foreground, borderColor: colors.border }]}
-            />
-          </View>
-          <TextInput
-            placeholder="メモ（任意）"
-            placeholderTextColor={colors.muted}
-            value={newNote}
-            onChangeText={setNewNote}
-            style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-          />
-
-          {/* Member Selection */}
-          <View style={styles.memberRow}>
-            {assignMemberOptions.map((m) => (
-              <Pressable
-                key={m.id}
-                onPress={() => setNewMember(m.id)}
-                style={({ pressed }) => [
-                  styles.memberChip,
-                  {
-                    backgroundColor: newMember === m.id ? colors.primary : colors.background,
-                    borderColor: colors.border,
-                  },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={[styles.memberEmoji]}>{m.emoji}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {/* Image Upload */}
-          <View style={styles.imageSection}>
-            {newImageUrl ? (
-              <View style={styles.imagePreview}>
-                <Image source={{ uri: newImageUrl }} style={styles.previewImage} resizeMode="cover" />
-                <Pressable
-                  onPress={() => setNewImageUrl(undefined)}
-                  style={({ pressed }) => [
-                    styles.removeImageBtn,
-                    { backgroundColor: colors.error },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <MaterialIcons name="close" size={16} color="#fff" />
-                </Pressable>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={{ flex: 1 }}
+          >
+            <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>商品名 *</Text>
+                <TextInput
+                  placeholder="商品の名前"
+                  placeholderTextColor={colors.muted}
+                  value={newName}
+                  onChangeText={setNewName}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                />
               </View>
-            ) : (
-              <Pressable
-                onPress={handlePickImage}
-                style={({ pressed }) => [
-                  styles.uploadBtn,
-                  { backgroundColor: colors.background, borderColor: colors.border },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <MaterialIcons name="add-a-photo" size={24} color={colors.primary} />
-                <Text style={[styles.uploadText, { color: colors.muted }]}>写真を追加</Text>
-              </Pressable>
-            )}
-          </View>
-
-              </ScrollView>
-            </KeyboardAvoidingView>
-        </ScreenContainer>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>数量・価格</Text>
+                <View style={styles.formRow}>
+                  <TextInput
+                    placeholder="数量"
+                    placeholderTextColor={colors.muted}
+                    value={newQuantity}
+                    onChangeText={setNewQuantity}
+                    keyboardType="number-pad"
+                    style={[styles.inputSmall, { color: colors.foreground, borderColor: colors.border }]}
+                  />
+                  <TextInput
+                    placeholder="価格（任意）"
+                    placeholderTextColor={colors.muted}
+                    value={newPrice}
+                    onChangeText={setNewPrice}
+                    keyboardType="number-pad"
+                    style={[styles.inputSmall, { color: colors.foreground, borderColor: colors.border }]}
+                  />
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>メモ</Text>
+                <TextInput
+                  placeholder="メモ（任意）"
+                  placeholderTextColor={colors.muted}
+                  value={newNote}
+                  onChangeText={setNewNote}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>担当</Text>
+                <View style={styles.memberRow}>
+                  {assignMemberOptions.map((m) => (
+                    <Pressable
+                      key={m.id}
+                      onPress={() => setNewMember(m.id)}
+                      style={({ pressed }) => [
+                        styles.memberChip,
+                        {
+                          backgroundColor: newMember === m.id ? colors.primary : colors.background,
+                          borderColor: colors.border,
+                        },
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={[styles.memberEmoji]}>{m.emoji}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>写真</Text>
+                <View style={styles.imageSection}>
+                  {newImageUrl ? (
+                    <View style={styles.imagePreview}>
+                      <Image source={{ uri: newImageUrl }} style={styles.previewImage} resizeMode="cover" />
+                      <Pressable
+                        onPress={() => setNewImageUrl(undefined)}
+                        style={({ pressed }) => [
+                          styles.removeImageBtn,
+                          { backgroundColor: colors.error },
+                          pressed && { opacity: 0.7 },
+                        ]}
+                      >
+                        <MaterialIcons name="close" size={16} color="#fff" />
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={handlePickImage}
+                      style={({ pressed }) => [
+                        styles.uploadBtn,
+                        { backgroundColor: colors.background, borderColor: colors.border },
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <MaterialIcons name="add-a-photo" size={24} color={colors.primary} />
+                      <Text style={[styles.uploadText, { color: colors.muted }]}>写真を追加</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       <FlatList
@@ -628,6 +639,9 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     marginTop: 12,
+  },
+  modalContainer: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: "row",

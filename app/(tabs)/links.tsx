@@ -283,104 +283,116 @@ export default function LinksScreen() {
       </KeyboardAvoidingView>
 
       {/* Add/Edit Modal */}
-      <Modal visible={showAddForm} animationType="slide">
-        <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+      <Modal visible={showAddForm} animationType="slide" presentationStyle="pageSheet">
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Pressable onPress={() => setShowAddForm(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+              <MaterialIcons name="close" size={24} color={colors.foreground} />
+            </Pressable>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              {editingItem ? "リンクを編集" : "リンクを追加"}
+            </Text>
+            <Pressable
+              onPress={handleAdd}
+              style={({ pressed }) => [
+                styles.saveButton,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={styles.saveButtonText}>保存</Text>
+            </Pressable>
+          </View>
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Pressable onPress={() => setShowAddForm(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-                <MaterialIcons name="close" size={24} color={colors.foreground} />
-              </Pressable>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                {editingItem ? "リンクを編集" : "リンクを追加"}
-              </Text>
-              <Pressable
-                onPress={handleAdd}
-                style={({ pressed }) => [
-                  styles.saveButton,
-                  { backgroundColor: colors.primary },
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <Text style={styles.saveButtonText}>保存</Text>
-              </Pressable>
-            </View>
             <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <TextInput
-                placeholder="タイトル"
-                placeholderTextColor={colors.muted}
-                value={newTitle}
-                onChangeText={setNewTitle}
-                style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-              />
-              <Pressable
-                onPress={() => setShowCategoryPicker(true)}
-                style={({ pressed }) => [
-                  styles.categorySelector,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.categorySelectorIcon}>
-                  {CATEGORIES.find((c) => c.value === newCategory)?.icon ?? "📌"}
-                </Text>
-                <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
-                  {CATEGORIES.find((c) => c.value === newCategory)?.label ?? "その他"}
-                </Text>
-                <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
-              </Pressable>
-              <TextInput
-                placeholder="URL"
-                placeholderTextColor={colors.muted}
-                value={newUrl}
-                onChangeText={setNewUrl}
-                style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
-                autoCapitalize="none"
-                keyboardType="url"
-              />
-              <TextInput
-                placeholder="メモ（任意）"
-                placeholderTextColor={colors.muted}
-                value={newNote}
-                onChangeText={setNewNote}
-                style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface, height: 80 }]}
-                multiline
-              />
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>タイトル *</Text>
+                <TextInput
+                  placeholder="リンクのタイトル"
+                  placeholderTextColor={colors.muted}
+                  value={newTitle}
+                  onChangeText={setNewTitle}
+                  style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>カテゴリ</Text>
+                <Pressable
+                  onPress={() => setShowCategoryPicker(true)}
+                  style={({ pressed }) => [
+                    styles.categorySelector,
+                    { backgroundColor: colors.surface, borderColor: colors.border },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.categorySelectorIcon}>
+                    {CATEGORIES.find((c) => c.value === newCategory)?.icon ?? "📌"}
+                  </Text>
+                  <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
+                    {CATEGORIES.find((c) => c.value === newCategory)?.label ?? "その他"}
+                  </Text>
+                  <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
+                </Pressable>
+              </View>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>URL *</Text>
+                <TextInput
+                  placeholder="https://"
+                  placeholderTextColor={colors.muted}
+                  value={newUrl}
+                  onChangeText={setNewUrl}
+                  style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+                  autoCapitalize="none"
+                  keyboardType="url"
+                />
+              </View>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>メモ</Text>
+                <TextInput
+                  placeholder="メモ（任意）"
+                  placeholderTextColor={colors.muted}
+                  value={newNote}
+                  onChangeText={setNewNote}
+                  style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface, height: 80 }]}
+                  multiline
+                />
+              </View>
               <View style={styles.field}>
                 <Text style={[styles.label, { color: colors.foreground }]}>担当</Text>
                 <View style={styles.memberRow}>
-                {assignMemberOptions.map((m) => (
-                  <Pressable
-                    key={m.id}
-                    onPress={() => setNewMember(m.id)}
-                    style={({ pressed }) => [
-                      styles.memberChip,
-                      {
-                        backgroundColor: newMember === m.id ? colors.primary : colors.surface,
-                        borderColor: colors.border,
-                      },
-                      pressed && { opacity: 0.7 },
-                    ]}
-                  >
-                    <Text style={styles.memberChipEmoji}>{m.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.memberChipLabel,
-                        { color: newMember === m.id ? "#fff" : colors.foreground },
+                  {assignMemberOptions.map((m) => (
+                    <Pressable
+                      key={m.id}
+                      onPress={() => setNewMember(m.id)}
+                      style={({ pressed }) => [
+                        styles.memberChip,
+                        {
+                          backgroundColor: newMember === m.id ? colors.primary : colors.surface,
+                          borderColor: colors.border,
+                        },
+                        pressed && { opacity: 0.7 },
                       ]}
                     >
-                      {m.name}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text style={styles.memberChipEmoji}>{m.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.memberChipLabel,
+                          { color: newMember === m.id ? "#fff" : colors.foreground },
+                        ]}
+                      >
+                        {m.name}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
               </View>
               <View style={{ height: 40 }} />
             </ScrollView>
           </KeyboardAvoidingView>
-        </ScreenContainer>
+        </View>
       </Modal>
       <ScrollCategoryPicker
         visible={showCategoryPicker}
@@ -573,6 +585,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  modalContainer: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: "row",

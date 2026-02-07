@@ -268,8 +268,8 @@ export default function PackingScreen() {
           </Text>
         </View>
 
-        <Modal visible={showAddForm} animationType="slide" onRequestClose={() => setShowAddForm(false)}>
-          <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+        <Modal visible={showAddForm} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAddForm(false)}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Pressable
                 onPress={() => setShowAddForm(false)}
@@ -296,79 +296,80 @@ export default function PackingScreen() {
               style={{ flex: 1 }}
             >
               <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
-            <TextInput
-              style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-              value={newItemName}
-              onChangeText={setNewItemName}
-              placeholder="持ち物の名前"
-              placeholderTextColor={colors.muted}
-              returnKeyType="done"
-              onSubmitEditing={handleAdd}
-              autoFocus
-            />
-            {/* Member selector */}
-            <View style={styles.addFormSection}>
-              <Text style={[styles.addFormLabel, { color: colors.muted }]}>担当</Text>
-              <View style={styles.addCategoryRow}>
-                {assignMemberOptions.map((m) => (
+                <View style={styles.field}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>持ち物名 *</Text>
+                  <TextInput
+                    style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+                    value={newItemName}
+                    onChangeText={setNewItemName}
+                    placeholder="持ち物の名前"
+                    placeholderTextColor={colors.muted}
+                    returnKeyType="done"
+                    onSubmitEditing={handleAdd}
+                  />
+                </View>
+                <View style={styles.field}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>担当</Text>
+                  <View style={styles.addCategoryRow}>
+                    {assignMemberOptions.map((m) => (
+                      <Pressable
+                        key={m.id}
+                        onPress={() => setNewItemMember(m.id)}
+                        style={[
+                          styles.miniChip,
+                          {
+                            backgroundColor: newItemMember === m.id ? m.color : colors.background,
+                            borderColor: newItemMember === m.id ? m.color : colors.border,
+                          },
+                        ]}
+                      >
+                        <Text style={styles.miniChipIcon}>{m.emoji}</Text>
+                        <Text
+                          style={[
+                            styles.miniChipText,
+                            { color: newItemMember === m.id ? "#fff" : colors.foreground },
+                          ]}
+                        >
+                          {m.name}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.field}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>カテゴリ</Text>
                   <Pressable
-                    key={m.id}
-                    onPress={() => setNewItemMember(m.id)}
-                    style={[
-                      styles.miniChip,
-                      {
-                        backgroundColor: newItemMember === m.id ? m.color : colors.background,
-                        borderColor: newItemMember === m.id ? m.color : colors.border,
-                      },
+                    onPress={() => setShowCategoryPicker(true)}
+                    style={({ pressed }) => [
+                      styles.categorySelector,
+                      { backgroundColor: colors.surface, borderColor: colors.border },
+                      pressed && { opacity: 0.7 },
                     ]}
                   >
-                    <Text style={styles.miniChipIcon}>{m.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.miniChipText,
-                        { color: newItemMember === m.id ? "#fff" : colors.foreground },
-                      ]}
-                    >
-                      {m.name}
+                    <Text style={styles.categorySelectorIcon}>
+                      {CATEGORIES.find((c) => c.value === newItemCategory)?.icon ?? "📌"}
                     </Text>
+                    <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
+                      {CATEGORIES.find((c) => c.value === newItemCategory)?.label ?? "その他"}
+                    </Text>
+                    <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
                   </Pressable>
-                ))}
-              </View>
-            </View>
-            {/* Category selector */}
-            <View style={styles.addFormSection}>
-              <Text style={[styles.addFormLabel, { color: colors.muted }]}>カテゴリ</Text>
-              <Pressable
-                onPress={() => setShowCategoryPicker(true)}
-                style={({ pressed }) => [
-                  styles.categorySelector,
-                  { backgroundColor: colors.background, borderColor: colors.border },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.categorySelectorIcon}>
-                  {CATEGORIES.find((c) => c.value === newItemCategory)?.icon ?? "📌"}
-                </Text>
-                <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
-                  {CATEGORIES.find((c) => c.value === newItemCategory)?.label ?? "その他"}
-                </Text>
-                <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
-              </Pressable>
-            </View>
-            <View style={styles.quantityRow}>
-              <Text style={[styles.quantityLabel, { color: colors.muted }]}>数量:</Text>
-              <TextInput
-                style={[styles.quantityInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-                value={newItemQuantity}
-                onChangeText={setNewItemQuantity}
-                keyboardType="number-pad"
-                maxLength={3}
-                returnKeyType="done"
-              />
-            </View>
+                </View>
+                <View style={styles.field}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>数量</Text>
+                  <TextInput
+                    style={[styles.quantityInput, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+                    value={newItemQuantity}
+                    onChangeText={setNewItemQuantity}
+                    keyboardType="number-pad"
+                    maxLength={3}
+                    returnKeyType="done"
+                  />
+                </View>
+                <View style={{ height: 40 }} />
               </ScrollView>
             </KeyboardAvoidingView>
-          </ScreenContainer>
+          </View>
         </Modal>
 
         {/* Member filter */}
@@ -609,6 +610,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  modalContainer: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: "row",
