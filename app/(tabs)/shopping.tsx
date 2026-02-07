@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
@@ -19,13 +21,14 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export default function ShoppingScreen() {
   const colors = useColors();
-  const { currentTrip, addShoppingItem, deleteShoppingItem, toggleShoppingItem } = useAppStore();
+  const { currentTrip, addShoppingItem, deleteShoppingItem, toggleShoppingItem, updateShoppingItem } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newQuantity, setNewQuantity] = useState("1");
   const [newPrice, setNewPrice] = useState("");
   const [newNote, setNewNote] = useState("");
   const [newMember, setNewMember] = useState("everyone");
+  const [newImageUrl, setNewImageUrl] = useState<string | undefined>(undefined);
   const [filterMember, setFilterMember] = useState("all");
 
   const members = currentTrip?.members ?? [];
@@ -47,6 +50,25 @@ export default function ShoppingScreen() {
 
   const boughtCount = shoppingItems.filter((i) => i.bought).length;
 
+  async function handlePickImage() {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("権限が必要です", "写真を選択するにはカメラロールへのアクセス権限が必要です");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setNewImageUrl(result.assets[0].uri);
+    }
+  }
+
   function handleAdd() {
     if (!newName.trim()) {
       Alert.alert("エラー", "商品名を入力してください");
@@ -60,11 +82,13 @@ export default function ShoppingScreen() {
       note: newNote.trim() || undefined,
       bought: false,
       memberId: newMember,
+      imageUrl: newImageUrl,
     });
     setNewName("");
     setNewQuantity("1");
     setNewPrice("");
     setNewNote("");
+    setNewImageUrl(undefined);
   }
 
   function handleDelete(item: ShoppingItem) {
@@ -80,245 +104,226 @@ export default function ShoppingScreen() {
     return m ? { emoji: m.emoji, name: m.name } : { emoji: "👤", name: "不明" };
   }
 
-  const renderItem = useCallback(
-    ({ item }: { item: ShoppingItem }) => {
-      const memberInfo = getMemberDisplay(item.memberId);
-      return (
-        <View
-          style={[
-            styles.itemCard,
-            {
-              backgroundColor: item.bought ? colors.surface : colors.background,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Pressable
-            onPress={() => toggleShoppingItem(item.id)}
-            style={({ pressed }) => [styles.checkbox, pressed && { opacity: 0.6 }]}
-          >
+  const renderItem = ({ item }: { item: ShoppingItem }) => {
+    const memberDisplay = getMemberDisplay(item.memberId);
+    return (
+      <Pressable
+        onLongPress={() => handleDelete(item)}
+        style={({ pressed }) => [
+          styles.itemCard,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+          pressed && { opacity: 0.7 },
+        ]}
+      >
+        <View style={styles.itemRow}>
+          <Pressable onPress={() => toggleShoppingItem(item.id)} style={styles.checkbox}>
             <MaterialIcons
-              name={item.bought ? "check-circle" : "radio-button-unchecked"}
+              name={item.bought ? "check-box" : "check-box-outline-blank"}
               size={24}
               color={item.bought ? colors.success : colors.muted}
             />
           </Pressable>
-          <View style={styles.itemInfo}>
-            <Text
-              style={[
-                styles.itemName,
-                { color: item.bought ? colors.muted : colors.foreground },
-                item.bought && styles.itemNameChecked,
-              ]}
-            >
-              🛍️ {item.name}
-            </Text>
-            <View style={styles.itemMeta}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.itemHeader}>
+              <Text
+                style={[
+                  styles.itemName,
+                  { color: item.bought ? colors.muted : colors.foreground },
+                  item.bought && { textDecorationLine: "line-through" },
+                ]}
+              >
+                {item.name}
+              </Text>
               {item.quantity > 1 && (
                 <Text style={[styles.itemQuantity, { color: colors.muted }]}>×{item.quantity}</Text>
               )}
-              {item.price && (
-                <Text style={[styles.itemPrice, { color: colors.primary }]}>{item.price}</Text>
-              )}
-              <Text style={[styles.itemMember, { color: colors.muted }]}>
-                {memberInfo.emoji} {memberInfo.name}
+            </View>
+            {item.price && (
+              <Text style={[styles.itemPrice, { color: colors.primary }]}>¥{item.price}</Text>
+            )}
+            {item.note && <Text style={[styles.itemNote, { color: colors.muted }]}>{item.note}</Text>}
+            <View style={styles.itemMember}>
+              <Text style={[styles.itemMemberText, { color: colors.muted }]}>
+                {memberDisplay.emoji} {memberDisplay.name}
               </Text>
             </View>
-            {item.note && (
-              <Text style={[styles.itemNote, { color: colors.muted }]} numberOfLines={1}>
-                📝 {item.note}
-              </Text>
+            {item.imageUrl && (
+              <Image source={{ uri: item.imageUrl }} style={styles.itemImage} resizeMode="cover" />
             )}
           </View>
-          <Pressable
-            onPress={() => handleDelete(item)}
-            style={({ pressed }) => [pressed && { opacity: 0.5 }]}
-          >
-            <MaterialIcons name="close" size={18} color={colors.muted} />
-          </Pressable>
         </View>
-      );
-    },
-    [colors, currentTrip]
-  );
-
-  if (!currentTrip) {
-    return (
-      <ScreenContainer>
-        <View style={styles.emptyContainer}>
-          <Text style={{ fontSize: 48 }}>🛒</Text>
-          <Text style={[styles.emptyText, { color: colors.muted }]}>旅行を作成してください</Text>
-        </View>
-      </ScreenContainer>
+      </Pressable>
     );
-  }
+  };
 
   return (
     <ScreenContainer>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>買いたいもの</Text>
-            <Text style={[styles.headerSub, { color: colors.muted }]}>
-              {boughtCount}/{shoppingItems.length}個 購入済み
-            </Text>
-          </View>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.title, { color: colors.foreground }]}>🛍️ 買いたいもの</Text>
+        <View style={styles.headerRight}>
+          <Text style={[styles.progress, { color: colors.muted }]}>
+            {boughtCount}/{shoppingItems.length}
+          </Text>
           <Pressable
             onPress={() => setShowAddForm(!showAddForm)}
-            style={({ pressed }) => [
-              styles.addButton,
-              { backgroundColor: colors.primary },
-              pressed && { opacity: 0.8 },
-            ]}
+            style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
           >
-            <MaterialIcons name={showAddForm ? "close" : "add"} size={20} color="#fff" />
+            <MaterialIcons name={showAddForm ? "close" : "add"} size={24} color={colors.primary} />
           </Pressable>
         </View>
+      </View>
 
-        {/* Add form */}
-        {showAddForm && (
-          <View style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <TextInput
-              style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-              value={newName}
-              onChangeText={setNewName}
-              placeholder="商品名"
-              placeholderTextColor={colors.muted}
-              returnKeyType="done"
-              autoFocus
-            />
-            <View style={styles.rowInputs}>
-              <View style={styles.halfInput}>
-                <Text style={[styles.addFormLabel, { color: colors.muted }]}>数量</Text>
-                <TextInput
-                  style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-                  value={newQuantity}
-                  onChangeText={setNewQuantity}
-                  keyboardType="number-pad"
-                  maxLength={3}
-                  returnKeyType="done"
-                />
-              </View>
-              <View style={styles.halfInput}>
-                <Text style={[styles.addFormLabel, { color: colors.muted }]}>予算</Text>
-                <TextInput
-                  style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-                  value={newPrice}
-                  onChangeText={setNewPrice}
-                  placeholder="例: ₩15,000"
-                  placeholderTextColor={colors.muted}
-                  returnKeyType="done"
-                />
-              </View>
-            </View>
-            {/* Member */}
-            <View style={styles.addFormSection}>
-              <Text style={[styles.addFormLabel, { color: colors.muted }]}>誰が買う？</Text>
-              <View style={styles.addCategoryRow}>
-                {assignMemberOptions.map((m) => (
-                  <Pressable
-                    key={m.id}
-                    onPress={() => setNewMember(m.id)}
-                    style={[
-                      styles.miniChip,
-                      {
-                        backgroundColor: newMember === m.id ? m.color : colors.background,
-                        borderColor: newMember === m.id ? m.color : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text style={styles.miniChipIcon}>{m.emoji}</Text>
-                    <Text style={[styles.miniChipText, { color: newMember === m.id ? "#fff" : colors.foreground }]}>
-                      {m.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            <TextInput
-              style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-              value={newNote}
-              onChangeText={setNewNote}
-              placeholder="メモ（任意）"
-              placeholderTextColor={colors.muted}
-              returnKeyType="done"
-            />
+      {/* Member Filter */}
+      <View style={styles.filterRow}>
+        <FlatList
+          horizontal
+          data={allMemberOptions}
+          keyExtractor={(item) => item.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => (
             <Pressable
-              onPress={handleAdd}
+              onPress={() => setFilterMember(item.id)}
               style={({ pressed }) => [
-                styles.addSubmitButton,
-                { backgroundColor: colors.primary },
-                pressed && { opacity: 0.8 },
+                styles.filterChip,
+                {
+                  backgroundColor: filterMember === item.id ? colors.primary : colors.surface,
+                  borderColor: colors.border,
+                },
+                pressed && { opacity: 0.7 },
               ]}
             >
-              <Text style={styles.addSubmitText}>追加する</Text>
+              <Text style={[styles.filterEmoji]}>{item.emoji}</Text>
+              <Text
+                style={[
+                  styles.filterName,
+                  { color: filterMember === item.id ? "#fff" : colors.foreground },
+                ]}
+              >
+                {item.name}
+              </Text>
             </Pressable>
-          </View>
-        )}
+          )}
+        />
+      </View>
 
-        {/* Member filter */}
-        <View style={styles.filterRow}>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={allMemberOptions}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.filterScroll}
-            renderItem={({ item: m }) => {
-              const count =
-                m.id === "all"
-                  ? shoppingItems.length
-                  : shoppingItems.filter((i) => {
-                      const mid = i.memberId ?? "everyone";
-                      return mid === m.id || mid === "everyone";
-                    }).length;
-              return (
+      {showAddForm && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          <Text style={[styles.formTitle, { color: colors.foreground }]}>新しい商品を追加</Text>
+          <TextInput
+            placeholder="商品名"
+            placeholderTextColor={colors.muted}
+            value={newName}
+            onChangeText={setNewName}
+            style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+          />
+          <View style={styles.formRow}>
+            <TextInput
+              placeholder="数量"
+              placeholderTextColor={colors.muted}
+              value={newQuantity}
+              onChangeText={setNewQuantity}
+              keyboardType="number-pad"
+              style={[styles.inputSmall, { color: colors.foreground, borderColor: colors.border }]}
+            />
+            <TextInput
+              placeholder="価格（任意）"
+              placeholderTextColor={colors.muted}
+              value={newPrice}
+              onChangeText={setNewPrice}
+              keyboardType="number-pad"
+              style={[styles.inputSmall, { color: colors.foreground, borderColor: colors.border }]}
+            />
+          </View>
+          <TextInput
+            placeholder="メモ（任意）"
+            placeholderTextColor={colors.muted}
+            value={newNote}
+            onChangeText={setNewNote}
+            style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+          />
+
+          {/* Member Selection */}
+          <View style={styles.memberRow}>
+            {assignMemberOptions.map((m) => (
+              <Pressable
+                key={m.id}
+                onPress={() => setNewMember(m.id)}
+                style={({ pressed }) => [
+                  styles.memberChip,
+                  {
+                    backgroundColor: newMember === m.id ? colors.primary : colors.background,
+                    borderColor: colors.border,
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.memberEmoji]}>{m.emoji}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Image Upload */}
+          <View style={styles.imageSection}>
+            {newImageUrl ? (
+              <View style={styles.imagePreview}>
+                <Image source={{ uri: newImageUrl }} style={styles.previewImage} resizeMode="cover" />
                 <Pressable
-                  onPress={() => setFilterMember(m.id)}
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: filterMember === m.id ? colors.primary : colors.surface,
-                      borderColor: filterMember === m.id ? colors.primary : colors.border,
-                    },
+                  onPress={() => setNewImageUrl(undefined)}
+                  style={({ pressed }) => [
+                    styles.removeImageBtn,
+                    { backgroundColor: colors.error },
+                    pressed && { opacity: 0.7 },
                   ]}
                 >
-                  <Text style={styles.filterIcon}>{m.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.filterText,
-                      { color: filterMember === m.id ? "#fff" : colors.foreground },
-                    ]}
-                  >
-                    {m.name} ({count})
-                  </Text>
+                  <MaterialIcons name="close" size={16} color="#fff" />
                 </Pressable>
-              );
-            }}
-          />
-        </View>
+              </View>
+            ) : (
+              <Pressable
+                onPress={handlePickImage}
+                style={({ pressed }) => [
+                  styles.uploadBtn,
+                  { backgroundColor: colors.background, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="add-a-photo" size={24} color={colors.primary} />
+                <Text style={[styles.uploadText, { color: colors.muted }]}>写真を追加</Text>
+              </Pressable>
+            )}
+          </View>
 
-        {/* Items list */}
-        <FlatList
-          data={filteredItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={{ fontSize: 40 }}>🛒</Text>
-              <Text style={[styles.emptyText, { color: colors.muted }]}>
-                買いたいものを追加しましょう
-              </Text>
-            </View>
-          }
-        />
-      </KeyboardAvoidingView>
+          <Pressable
+            onPress={handleAdd}
+            style={({ pressed }) => [
+              styles.submitBtn,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text style={styles.submitText}>追加</Text>
+          </Pressable>
+        </KeyboardAvoidingView>
+      )}
+
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <MaterialIcons name="shopping-cart" size={48} color={colors.muted} />
+            <Text style={[styles.emptyText, { color: colors.muted }]}>
+              買いたいものがまだありません
+            </Text>
+          </View>
+        }
+      />
     </ScreenContainer>
   );
 }
@@ -330,76 +335,200 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 20, fontWeight: "800" },
-  headerSub: { fontSize: 12, marginTop: 1 },
-  addButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
   },
-  addForm: {
-    margin: 16,
-    marginBottom: 8,
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    gap: 10,
-  },
-  addFormSection: { gap: 4 },
-  addFormLabel: { fontSize: 11, fontWeight: "700" },
-  addInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  rowInputs: { flexDirection: "row", gap: 10 },
-  halfInput: { flex: 1, gap: 4 },
-  addCategoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  miniChip: {
+  headerRight: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 3,
+    gap: 12,
   },
-  miniChipIcon: { fontSize: 12 },
-  miniChipText: { fontSize: 11, fontWeight: "600" },
-  addSubmitButton: { paddingVertical: 10, borderRadius: 10, alignItems: "center" },
-  addSubmitText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  filterRow: { paddingVertical: 6 },
-  filterScroll: { paddingHorizontal: 16, gap: 6 },
+  progress: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  addBtn: {
+    padding: 4,
+  },
+  filterRow: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  filterList: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    gap: 4,
-    marginRight: 6,
+    gap: 6,
   },
-  filterIcon: { fontSize: 13 },
-  filterText: { fontSize: 12, fontWeight: "600" },
-  listContent: { padding: 16, paddingBottom: 100, gap: 6 },
-  itemCard: {
+  filterEmoji: {
+    fontSize: 16,
+  },
+  filterName: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addForm: {
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  formTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    marginBottom: 12,
+  },
+  formRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  inputSmall: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  memberRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  memberChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  memberEmoji: {
+    fontSize: 20,
+  },
+  imageSection: {
+    marginBottom: 12,
+  },
+  uploadBtn: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    gap: 10,
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    gap: 8,
   },
-  checkbox: { padding: 2 },
-  itemInfo: { flex: 1, gap: 2 },
-  itemName: { fontSize: 15, fontWeight: "600" },
-  itemNameChecked: { textDecorationLine: "line-through" },
-  itemMeta: { flexDirection: "row", gap: 8 },
-  itemQuantity: { fontSize: 12, fontWeight: "600" },
-  itemPrice: { fontSize: 12, fontWeight: "700" },
-  itemMember: { fontSize: 12 },
-  itemNote: { fontSize: 12 },
-  emptyContainer: { alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 12 },
-  emptyText: { fontSize: 14, fontWeight: "500" },
+  uploadText: {
+    fontSize: 14,
+  },
+  imagePreview: {
+    position: "relative",
+    width: "100%",
+    height: 200,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  removeImageBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  submitBtn: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  submitText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  list: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  itemCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  itemRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  checkbox: {
+    paddingTop: 2,
+  },
+  itemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  itemQuantity: {
+    fontSize: 14,
+  },
+  itemPrice: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  itemNote: {
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  itemMember: {
+    marginBottom: 8,
+  },
+  itemMemberText: {
+    fontSize: 13,
+  },
+  itemImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  empty: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    marginTop: 12,
+  },
 });

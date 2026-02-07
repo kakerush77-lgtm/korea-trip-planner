@@ -12,6 +12,7 @@ import {
   Modal,
   ScrollView,
 } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -147,6 +148,24 @@ export default function SettingsScreen() {
     setShowExportModal(false);
   }
 
+  async function handlePickFile() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/json",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const file = result.assets[0];
+      const response = await fetch(file.uri);
+      const text = await response.text();
+      setImportText(text);
+    } catch (error) {
+      Alert.alert("エラー", "ファイルの読み込みに失敗しました");
+    }
+  }
+
   function handleImport() {
     if (!importText.trim()) {
       Alert.alert("エラー", "JSONデータを入力してください");
@@ -158,7 +177,6 @@ export default function SettingsScreen() {
         importTrip(data.trip);
         Alert.alert("インポート完了", "旅行データを取り込みました");
       } else if (data.type === "links" && data.linkItems) {
-        // Merge links into current trip
         if (!currentTrip) {
           Alert.alert("エラー", "現在の旅行が選択されていません");
           return;
@@ -167,7 +185,6 @@ export default function SettingsScreen() {
           ...item,
           id: `link-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         }));
-        // TODO: Add merge function to store
         Alert.alert("インポート完了", `${newLinks.length}件のリンクを取り込みました（手動マージが必要です）`);
       } else if (data.type === "shopping" && data.shoppingItems) {
         if (!currentTrip) {
@@ -420,10 +437,68 @@ export default function SettingsScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>インポート</Text>
             <Text style={[styles.modalDesc, { color: colors.muted }]}>
-              JSONデータを貼り付けてください
+              JSONファイルを選択するか、テキストを貼り付けてください
             </Text>
+
+            {/* File Picker Button */}
+            {Platform.OS !== "web" && (
+              <Pressable
+                onPress={handlePickFile}
+                style={({ pressed }) => [
+                  styles.filePickerBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="attach-file" size={20} color={colors.primary} />
+                <Text style={[styles.filePickerText, { color: colors.foreground }]}>
+                  ファイルを選択
+                </Text>
+              </Pressable>
+            )}
+
+            {/* Web File Input */}
+            {Platform.OS === "web" && (
+              <label htmlFor="file-input" style={{ marginBottom: 16, display: "block" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 12,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderStyle: "solid",
+                    borderColor: colors.border,
+                    backgroundColor: colors.surface,
+                    cursor: "pointer",
+                    gap: 8,
+                  }}
+                >
+                  <MaterialIcons name="attach-file" size={20} color={colors.primary} />
+                  <span style={{ color: colors.foreground, fontSize: 15, fontWeight: "600" }}>
+                    ファイルを選択
+                  </span>
+                </div>
+                <input
+                  id="file-input"
+                  type="file"
+                  accept="application/json"
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const text = await file.text();
+                      setImportText(text);
+                    }
+                  }}
+                />
+              </label>
+            )}
+
             <TextInput
-              placeholder="JSONデータを貼り付け"
+              placeholder="またはJSONデータを貼り付け"
               placeholderTextColor={colors.muted}
               value={importText}
               onChangeText={setImportText}
@@ -435,7 +510,10 @@ export default function SettingsScreen() {
             />
             <View style={styles.modalActions}>
               <Pressable
-                onPress={() => setShowImportModal(false)}
+                onPress={() => {
+                  setShowImportModal(false);
+                  setImportText("");
+                }}
                 style={({ pressed }) => [
                   styles.modalBtn,
                   { backgroundColor: colors.muted },
@@ -616,6 +694,20 @@ const styles = StyleSheet.create({
   },
   modalCancelText: {
     color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  filePickerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 8,
+  },
+  filePickerText: {
     fontSize: 15,
     fontWeight: "600",
   },

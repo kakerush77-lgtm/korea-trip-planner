@@ -62,6 +62,7 @@ export interface ShoppingItem {
   note?: string;
   bought: boolean;
   memberId?: MemberId;
+  imageUrl?: string; // uploaded photo URL
 }
 
 export interface LinkItem {
