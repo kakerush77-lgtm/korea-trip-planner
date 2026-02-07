@@ -9,6 +9,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -45,6 +47,7 @@ export default function PackingScreen() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterMember, setFilterMember] = useState("all");
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [editingItem, setEditingItem] = useState<PackingItem | null>(null);
 
   const members = currentTrip?.members ?? [];
   const packingItems = currentTrip?.packingItems ?? [];
@@ -77,21 +80,42 @@ export default function PackingScreen() {
   const totalCount = packingItems.length;
   const progress = totalCount > 0 ? checkedCount / totalCount : 0;
 
+  function handleEdit(item: PackingItem) {
+    setEditingItem(item);
+    setNewItemName(item.name);
+    setNewItemCategory(item.category || "other");
+    setNewItemQuantity(String(item.quantity));
+    setNewItemMember(item.memberId || "everyone");
+    setShowAddForm(true);
+  }
+
   function handleAdd() {
     if (!newItemName.trim()) {
       Alert.alert("エラー", "持ち物の名前を入力してください");
       return;
     }
     const qty = parseInt(newItemQuantity) || 1;
-    addPackingItem({
-      name: newItemName.trim(),
-      category: newItemCategory,
-      quantity: qty,
-      checked: false,
-      memberId: newItemMember,
-    });
+    if (editingItem) {
+      updatePackingItem({
+        ...editingItem,
+        name: newItemName.trim(),
+        category: newItemCategory,
+        quantity: qty,
+        memberId: newItemMember,
+      });
+    } else {
+      addPackingItem({
+        name: newItemName.trim(),
+        category: newItemCategory,
+        quantity: qty,
+        checked: false,
+        memberId: newItemMember,
+      });
+    }
     setNewItemName("");
     setNewItemQuantity("1");
+    setEditingItem(null);
+    setShowAddForm(false);
   }
 
   function handleDelete(item: PackingItem) {
@@ -151,12 +175,28 @@ export default function PackingScreen() {
               </Text>
             </View>
           </View>
-          <Pressable
-            onPress={() => handleDelete(item)}
-            style={({ pressed }) => [pressed && { opacity: 0.5 }]}
-          >
-            <MaterialIcons name="close" size={18} color={colors.muted} />
-          </Pressable>
+          <View style={styles.itemActions}>
+            <Pressable
+              onPress={() => handleEdit(item)}
+              style={({ pressed }) => [
+                styles.editButton,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="edit" size={16} color="#fff" />
+            </Pressable>
+            <Pressable
+              onPress={() => handleDelete(item)}
+              style={({ pressed }) => [
+                styles.deleteButton,
+                { backgroundColor: colors.error },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="delete" size={16} color="#fff" />
+            </Pressable>
+          </View>
         </View>
       );
     },
@@ -228,9 +268,21 @@ export default function PackingScreen() {
           </Text>
         </View>
 
-        {/* Add form */}
-        {showAddForm && (
-          <View style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Modal visible={showAddForm} animationType="slide" transparent onRequestClose={() => setShowAddForm(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setShowAddForm(false)}>
+            <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                  {editingItem ? "持ち物を編集" : "新しい持ち物を追加"}
+                </Text>
+                <Pressable
+                  onPress={() => setShowAddForm(false)}
+                  style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.7 }]}
+                >
+                  <MaterialIcons name="close" size={24} color={colors.muted} />
+                </Pressable>
+              </View>
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
             <TextInput
               style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
               value={newItemName}
@@ -301,18 +353,20 @@ export default function PackingScreen() {
                 returnKeyType="done"
               />
             </View>
-            <Pressable
-              onPress={handleAdd}
-              style={({ pressed }) => [
-                styles.addSubmitButton,
-                { backgroundColor: colors.primary },
-                pressed && { opacity: 0.8 },
-              ]}
-            >
-              <Text style={styles.addSubmitText}>追加する</Text>
+                <Pressable
+                  onPress={handleAdd}
+                  style={({ pressed }) => [
+                    styles.submitBtn,
+                    { backgroundColor: colors.primary },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.submitText}>{editingItem ? "保存" : "追加"}</Text>
+                </Pressable>
+              </ScrollView>
             </Pressable>
-          </View>
-        )}
+          </Pressable>
+        </Modal>
 
         {/* Member filter */}
         <View style={[styles.filterRow, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
@@ -534,4 +588,67 @@ const styles = StyleSheet.create({
   },
   categorySelectorIcon: { fontSize: 16 },
   categorySelectorText: { fontSize: 14, fontWeight: "600", flex: 1 },
+  itemActions: {
+    flexDirection: "column",
+    gap: 8,
+    justifyContent: "center",
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    maxHeight: "90%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: "hidden",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    padding: 20,
+  },
+  submitBtn: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  submitText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });

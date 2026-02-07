@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
+  ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -33,6 +35,7 @@ export default function ShoppingScreen() {
   const [newMember, setNewMember] = useState("everyone");
   const [newImageUrl, setNewImageUrl] = useState<string | undefined>(undefined);
   const [filterMember, setFilterMember] = useState("all");
+  const [editingItem, setEditingItem] = useState<ShoppingItem | null>(null);
 
   const members = currentTrip?.members ?? [];
   const shoppingItems = currentTrip?.shoppingItems ?? [];
@@ -72,26 +75,51 @@ export default function ShoppingScreen() {
     }
   }
 
+  function handleEdit(item: ShoppingItem) {
+    setEditingItem(item);
+    setNewName(item.name);
+    setNewQuantity(String(item.quantity));
+    setNewPrice(item.price || "");
+    setNewNote(item.note || "");
+    setNewMember(item.memberId || "everyone");
+    setNewImageUrl(item.imageUrl);
+    setShowAddForm(true);
+  }
+
   function handleAdd() {
     if (!newName.trim()) {
       Alert.alert("エラー", "商品名を入力してください");
       return;
     }
     const qty = parseInt(newQuantity) || 1;
-    addShoppingItem({
-      name: newName.trim(),
-      quantity: qty,
-      price: newPrice.trim() || undefined,
-      note: newNote.trim() || undefined,
-      bought: false,
-      memberId: newMember,
-      imageUrl: newImageUrl,
-    });
+    if (editingItem) {
+      updateShoppingItem({
+        ...editingItem,
+        name: newName.trim(),
+        quantity: qty,
+        price: newPrice.trim() || undefined,
+        note: newNote.trim() || undefined,
+        memberId: newMember,
+        imageUrl: newImageUrl,
+      });
+    } else {
+      addShoppingItem({
+        name: newName.trim(),
+        quantity: qty,
+        price: newPrice.trim() || undefined,
+        note: newNote.trim() || undefined,
+        bought: false,
+        memberId: newMember,
+        imageUrl: newImageUrl,
+      });
+    }
     setNewName("");
     setNewQuantity("1");
     setNewPrice("");
     setNewNote("");
     setNewImageUrl(undefined);
+    setEditingItem(null);
+    setShowAddForm(false);
   }
 
   function handleDelete(item: ShoppingItem) {
@@ -110,12 +138,10 @@ export default function ShoppingScreen() {
   const renderItem = ({ item }: { item: ShoppingItem }) => {
     const memberDisplay = getMemberDisplay(item.memberId);
     return (
-      <Pressable
-        onLongPress={() => handleDelete(item)}
-        style={({ pressed }) => [
+      <View
+        style={[
           styles.itemCard,
           { backgroundColor: colors.surface, borderColor: colors.border },
-          pressed && { opacity: 0.7 },
         ]}
       >
         <View style={styles.itemRow}>
@@ -154,8 +180,30 @@ export default function ShoppingScreen() {
               <Image source={{ uri: item.imageUrl }} style={styles.itemImage} resizeMode="cover" />
             )}
           </View>
+          <View style={styles.itemActions}>
+            <Pressable
+              onPress={() => handleEdit(item)}
+              style={({ pressed }) => [
+                styles.editButton,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="edit" size={18} color="#fff" />
+            </Pressable>
+            <Pressable
+              onPress={() => handleDelete(item)}
+              style={({ pressed }) => [
+                styles.deleteButton,
+                { backgroundColor: colors.error },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="delete" size={18} color="#fff" />
+            </Pressable>
+          </View>
         </View>
-      </Pressable>
+      </View>
     );
   };
 
@@ -225,12 +273,25 @@ export default function ShoppingScreen() {
         />
       </View>
 
-      {showAddForm && (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        >
-          <Text style={[styles.formTitle, { color: colors.foreground }]}>新しい商品を追加</Text>
+      <Modal visible={showAddForm} animationType="slide" transparent onRequestClose={() => setShowAddForm(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowAddForm(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                {editingItem ? "商品を編集" : "新しい商品を追加"}
+              </Text>
+              <Pressable
+                onPress={() => setShowAddForm(false)}
+                style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.7 }]}
+              >
+                <MaterialIcons name="close" size={24} color={colors.muted} />
+              </Pressable>
+            </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+              style={{ flex: 1 }}
+            >
+              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
           <TextInput
             placeholder="商品名"
             placeholderTextColor={colors.muted}
@@ -315,18 +376,21 @@ export default function ShoppingScreen() {
             )}
           </View>
 
-          <Pressable
-            onPress={handleAdd}
-            style={({ pressed }) => [
-              styles.submitBtn,
-              { backgroundColor: colors.primary },
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <Text style={styles.submitText}>追加</Text>
+                <Pressable
+                  onPress={handleAdd}
+                  style={({ pressed }) => [
+                    styles.submitBtn,
+                    { backgroundColor: colors.primary },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.submitText}>{editingItem ? "保存" : "追加"}</Text>
+                </Pressable>
+              </ScrollView>
+            </KeyboardAvoidingView>
           </Pressable>
-        </KeyboardAvoidingView>
-      )}
+        </Pressable>
+      </Modal>
 
       <FlatList
         data={filteredItems}
@@ -539,6 +603,25 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
   },
+  itemActions: {
+    flexDirection: "column",
+    gap: 8,
+    justifyContent: "center",
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   empty: {
     alignItems: "center",
     justifyContent: "center",
@@ -547,5 +630,37 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     marginTop: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    maxHeight: "90%",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: "hidden",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    padding: 20,
   },
 });
