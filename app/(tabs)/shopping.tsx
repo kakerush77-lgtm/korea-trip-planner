@@ -12,6 +12,7 @@ import {
   Image,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
@@ -21,6 +22,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export default function ShoppingScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { currentTrip, addShoppingItem, deleteShoppingItem, toggleShoppingItem, updateShoppingItem } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -159,7 +161,17 @@ export default function ShoppingScreen() {
   return (
     <ScreenContainer>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>🛍️ 買いたいもの</Text>
+        <Pressable
+          onPress={() => router.push("/home" as any)}
+          style={({ pressed }) => [
+            styles.homeButton,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            pressed && { opacity: 0.6 },
+          ]}
+        >
+          <MaterialIcons name="home" size={20} color={colors.primary} />
+        </Pressable>
+        <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={1}>🛒️ 買いたいもの</Text>
         <View style={styles.headerRight}>
           <Text style={[styles.progress, { color: colors.muted }]}>
             {boughtCount}/{shoppingItems.length}
@@ -335,6 +347,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    gap: 10,
+  },
+  homeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
     borderBottomWidth: 1,
   },
   title: {

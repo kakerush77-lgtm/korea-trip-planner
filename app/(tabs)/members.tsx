@@ -68,8 +68,18 @@ export default function MembersScreen() {
     <ScreenContainer>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => router.push("/home" as any)}
+            style={({ pressed }) => [
+              styles.homeButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <MaterialIcons name="home" size={20} color={colors.primary} />
+          </Pressable>
           <Text style={styles.headerEmoji}>👥</Text>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>メンバー</Text>
             <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
               {members.length}人の旅行メンバー
@@ -118,6 +128,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    flex: 1,
+  },
+  homeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
   },
   headerEmoji: { fontSize: 28 },
   headerTitle: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },

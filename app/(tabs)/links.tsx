@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
@@ -29,6 +30,7 @@ const CATEGORIES: CategoryOption[] = [
 
 export default function LinksScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { currentTrip, addLinkItem, deleteLinkItem } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -155,10 +157,24 @@ export default function LinksScreen() {
         keyboardVerticalOffset={100}
       >
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.foreground }]}>🔗 リンク集</Text>
-          <Text style={[styles.subtitle, { color: colors.muted }]}>
-            {linkItems.length}件のリンク
-          </Text>
+          <View style={styles.headerRow}>
+            <Pressable
+              onPress={() => router.push("/home" as any)}
+              style={({ pressed }) => [
+                styles.homeButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <MaterialIcons name="home" size={20} color={colors.primary} />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.title, { color: colors.foreground }]}>🔗 リンク集</Text>
+              <Text style={[styles.subtitle, { color: colors.muted }]}>
+                {linkItems.length}件のリンク
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Member Filter */}
@@ -349,6 +365,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  homeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
   },
   title: {
     fontSize: 24,

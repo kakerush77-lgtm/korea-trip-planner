@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
@@ -33,6 +34,7 @@ const CATEGORY_PICKER_OPTIONS: CategoryOption[] = CATEGORIES.filter((c) => c.val
 
 export default function PackingScreen() {
   const colors = useColors();
+  const router = useRouter();
   const { currentTrip, addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem } = useAppStore();
   const [newItemName, setNewItemName] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
@@ -179,7 +181,17 @@ export default function PackingScreen() {
       >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View>
+          <Pressable
+            onPress={() => router.push("/home" as any)}
+            style={({ pressed }) => [
+              styles.homeButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <MaterialIcons name="home" size={20} color={colors.primary} />
+          </Pressable>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>持ち物リスト</Text>
             <Text style={[styles.headerSub, { color: colors.muted }]}>
               {checkedCount}/{totalCount}個 準備完了
@@ -418,6 +430,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    gap: 10,
+  },
+  homeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
     borderBottomWidth: 0.5,
   },
   headerTitle: { fontSize: 20, fontWeight: "800" },

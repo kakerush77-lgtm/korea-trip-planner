@@ -144,9 +144,19 @@ export default function ScheduleScreen() {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => router.push("/home" as any)}
+            style={({ pressed }) => [
+              styles.homeButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <MaterialIcons name="home" size={20} color={colors.primary} />
+          </Pressable>
           <Text style={styles.headerEmoji}>{currentTrip.emoji}</Text>
-          <View>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]} numberOfLines={1}>
               {currentTrip.name}
             </Text>
             <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
@@ -311,6 +321,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     flex: 1,
+  },
+  homeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
   },
   headerEmoji: { fontSize: 28 },
   headerTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
