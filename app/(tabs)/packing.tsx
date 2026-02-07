@@ -268,20 +268,33 @@ export default function PackingScreen() {
           </Text>
         </View>
 
-        <Modal visible={showAddForm} animationType="slide" transparent onRequestClose={() => setShowAddForm(false)}>
-          <Pressable style={styles.modalOverlay} onPress={() => setShowAddForm(false)}>
-            <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
-              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                  {editingItem ? "持ち物を編集" : "新しい持ち物を追加"}
-                </Text>
-                <Pressable
-                  onPress={() => setShowAddForm(false)}
-                  style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.7 }]}
-                >
-                  <MaterialIcons name="close" size={24} color={colors.muted} />
-                </Pressable>
-              </View>
+        <Modal visible={showAddForm} animationType="slide" onRequestClose={() => setShowAddForm(false)}>
+          <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Pressable
+                onPress={() => setShowAddForm(false)}
+                style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+              >
+                <MaterialIcons name="close" size={24} color={colors.foreground} />
+              </Pressable>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                {editingItem ? "持ち物を編集" : "持ち物を追加"}
+              </Text>
+              <Pressable
+                onPress={handleAdd}
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={styles.saveButtonText}>保存</Text>
+              </Pressable>
+            </View>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+              style={{ flex: 1 }}
+            >
               <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
             <TextInput
               style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
@@ -353,19 +366,9 @@ export default function PackingScreen() {
                 returnKeyType="done"
               />
             </View>
-                <Pressable
-                  onPress={handleAdd}
-                  style={({ pressed }) => [
-                    styles.submitBtn,
-                    { backgroundColor: colors.primary },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={styles.submitText}>{editingItem ? "保存" : "追加"}</Text>
-                </Pressable>
               </ScrollView>
-            </Pressable>
-          </Pressable>
+            </KeyboardAvoidingView>
+          </ScreenContainer>
         </Modal>
 
         {/* Member filter */}
@@ -607,17 +610,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    maxHeight: "90%",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: "hidden",
-  },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -627,28 +619,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
   },
-  closeButton: {
-    padding: 4,
+  saveButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
   modalScroll: {
     flex: 1,
   },
   modalScrollContent: {
     padding: 20,
-  },
-  submitBtn: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  submitText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

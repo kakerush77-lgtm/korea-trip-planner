@@ -283,9 +283,12 @@ export default function LinksScreen() {
       </KeyboardAvoidingView>
 
       {/* Add/Edit Modal */}
-      <Modal visible={showAddForm} transparent animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAddForm(false)}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+      <Modal visible={showAddForm} animationType="slide">
+        <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>
                 {editingItem ? "リンクを編集" : "リンクを追加"}
@@ -361,38 +364,19 @@ export default function LinksScreen() {
                   </Pressable>
                 ))}
               </View>
-            </ScrollView>
-            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
-              <Pressable
-                onPress={() => {
-                  setShowAddForm(false);
-                  setEditingItem(null);
-                  setNewTitle("");
-                  setNewUrl("");
-                  setNewNote("");
-                  setNewMember("everyone");
-                }}
-                style={({ pressed }) => [
-                  styles.modalButton,
-                  { backgroundColor: colors.muted },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.modalButtonText}>キャンセル</Text>
-              </Pressable>
               <Pressable
                 onPress={handleAdd}
                 style={({ pressed }) => [
-                  styles.modalButton,
+                  styles.submitButton,
                   { backgroundColor: colors.primary },
                   pressed && { opacity: 0.7 },
                 ]}
               >
-                <Text style={styles.modalButtonText}>{editingItem ? "更新" : "追加"}</Text>
+                <Text style={styles.submitButtonText}>{editingItem ? "保存" : "追加"}</Text>
               </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </ScreenContainer>
       </Modal>
       <ScrollCategoryPicker
         visible={showCategoryPicker}
@@ -586,16 +570,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "90%",
-  },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -605,7 +579,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
   },
   modalBody: {
@@ -619,22 +593,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  modalFooter: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 20,
+  submitButton: {
     paddingVertical: 16,
-    borderTopWidth: 1,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
+    marginTop: 8,
   },
-  modalButtonText: {
+  submitButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
   },
 });

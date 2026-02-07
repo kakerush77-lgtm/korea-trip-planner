@@ -273,20 +273,29 @@ export default function ShoppingScreen() {
         />
       </View>
 
-      <Modal visible={showAddForm} animationType="slide" transparent onRequestClose={() => setShowAddForm(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAddForm(false)}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                {editingItem ? "商品を編集" : "新しい商品を追加"}
-              </Text>
-              <Pressable
-                onPress={() => setShowAddForm(false)}
-                style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.7 }]}
-              >
-                <MaterialIcons name="close" size={24} color={colors.muted} />
-              </Pressable>
-            </View>
+      <Modal visible={showAddForm} animationType="slide" onRequestClose={() => setShowAddForm(false)}>
+        <ScreenContainer edges={["top", "bottom", "left", "right"]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Pressable
+              onPress={() => setShowAddForm(false)}
+              style={({ pressed }) => [pressed && { opacity: 0.6 }]}
+            >
+              <MaterialIcons name="close" size={24} color={colors.foreground} />
+            </Pressable>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+              {editingItem ? "商品を編集" : "商品を追加"}
+            </Text>
+            <Pressable
+              onPress={handleAdd}
+              style={({ pressed }) => [
+                styles.saveButton,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.8 },
+              ]}
+            >
+              <Text style={styles.saveButtonText}>保存</Text>
+            </Pressable>
+          </View>
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : undefined}
               style={{ flex: 1 }}
@@ -376,20 +385,9 @@ export default function ShoppingScreen() {
             )}
           </View>
 
-                <Pressable
-                  onPress={handleAdd}
-                  style={({ pressed }) => [
-                    styles.submitBtn,
-                    { backgroundColor: colors.primary },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={styles.submitText}>{editingItem ? "保存" : "追加"}</Text>
-                </Pressable>
               </ScrollView>
             </KeyboardAvoidingView>
-          </Pressable>
-        </Pressable>
+        </ScreenContainer>
       </Modal>
 
       <FlatList
@@ -631,17 +629,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    maxHeight: "90%",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: "hidden",
-  },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -651,11 +638,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
   },
-  closeButton: {
-    padding: 4,
+  saveButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
   modalScroll: {
     flex: 1,
