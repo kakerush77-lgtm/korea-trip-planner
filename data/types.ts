@@ -51,6 +51,27 @@ export interface PackingItem {
   checked: boolean;
   category?: string;
   quantity: number;
+  memberId?: MemberId; // "everyone" or specific member id
+}
+
+export interface WishlistItem {
+  id: string;
+  name: string;
+  location?: string;
+  mapInfo?: MapInfo;
+  note?: string;
+  visited: boolean;
+  memberId?: MemberId;
+}
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price?: string;
+  note?: string;
+  bought: boolean;
+  memberId?: MemberId;
 }
 
 export interface Trip {
@@ -63,6 +84,8 @@ export interface Trip {
   events: ScheduleEvent[];
   members: Member[];
   packingItems: PackingItem[];
+  wishlistItems: WishlistItem[];
+  shoppingItems: ShoppingItem[];
   createdAt: string;
   updatedAt: string;
 }

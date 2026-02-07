@@ -3,7 +3,7 @@ import { SCHEDULE } from "../data/schedule";
 import { MEMBERS, getMemberById, getMemberColor, EVERYONE_MEMBER } from "../data/members";
 import { DAYS } from "../data/days";
 import { generateDays } from "../lib/store";
-import type { ScheduleEvent, Member, DayInfo, PackingItem, Trip, EventLink, MapInfo } from "../data/types";
+import type { ScheduleEvent, Member, DayInfo, PackingItem, Trip, EventLink, MapInfo, WishlistItem, ShoppingItem } from "../data/types";
 
 // Pure data/logic tests (no React Native imports)
 
@@ -45,6 +45,25 @@ function getCategoryLabel(category?: string): string {
     case "activity": return "アクティビティ";
     default: return "その他";
   }
+}
+
+function makeTripBase(overrides: Partial<Trip> = {}): Trip {
+  return {
+    id: "trip-test",
+    name: "テスト旅行",
+    emoji: "✈️",
+    startDate: "2026-06-01",
+    endDate: "2026-06-05",
+    days: [],
+    events: [],
+    members: [],
+    packingItems: [],
+    wishlistItems: [],
+    shoppingItems: [],
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    ...overrides,
+  };
 }
 
 // ---- Schedule Data Tests ----
@@ -240,34 +259,26 @@ describe("Type Structures", () => {
     expect(event.links?.[0].label).toBe("公式サイト");
   });
 
-  it("PackingItem should have quantity and category", () => {
+  it("PackingItem should have quantity, category and memberId", () => {
     const item: PackingItem = {
       id: "pkg-1",
       name: "パスポート",
       checked: false,
       category: "documents",
       quantity: 1,
+      memberId: "shohei",
     };
     expect(item.quantity).toBe(1);
     expect(item.checked).toBe(false);
     expect(item.category).toBe("documents");
+    expect(item.memberId).toBe("shohei");
   });
 
-  it("Trip should contain all sub-collections", () => {
-    const trip: Trip = {
-      id: "trip-1",
-      name: "韓国旅行",
-      emoji: "🇰🇷",
-      startDate: "2026-03-19",
-      endDate: "2026-03-22",
-      days: [],
-      events: [],
-      members: [],
-      packingItems: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  it("Trip should contain all sub-collections including wishlist and shopping", () => {
+    const trip = makeTripBase();
     expect(trip.packingItems).toEqual([]);
+    expect(trip.wishlistItems).toEqual([]);
+    expect(trip.shoppingItems).toEqual([]);
     expect(trip.members).toEqual([]);
     expect(trip.days).toEqual([]);
     expect(trip.events).toEqual([]);
@@ -332,6 +343,8 @@ describe("Utility Functions", () => {
     expect(getCategoryIcon("food")).toBe("🍽️");
     expect(getCategoryIcon("shopping")).toBe("🛍️");
     expect(getCategoryIcon("beauty")).toBe("💆");
+    expect(getCategoryIcon("sightseeing")).toBe("📸");
+    expect(getCategoryIcon("activity")).toBe("🎮");
     expect(getCategoryIcon(undefined)).toBe("📌");
   });
 
@@ -461,42 +474,110 @@ describe("Packing Items", () => {
     const updated = { ...item, quantity: 5 };
     expect(updated.quantity).toBe(5);
   });
+
+  it("should support memberId for per-member packing", () => {
+    const items: PackingItem[] = [
+      { id: "p1", name: "パスポート", checked: false, quantity: 1, memberId: "shohei" },
+      { id: "p2", name: "おむつ", checked: false, quantity: 10, memberId: "orito" },
+      { id: "p3", name: "Wi-Fi", checked: false, quantity: 1, memberId: "everyone" },
+    ];
+    const shoheiItems = items.filter((i) => i.memberId === "shohei" || i.memberId === "everyone");
+    expect(shoheiItems.length).toBe(2);
+  });
+});
+
+// ---- Wishlist Tests ----
+describe("Wishlist Items", () => {
+  it("should create a wishlist item", () => {
+    const item: WishlistItem = {
+      id: "w1",
+      name: "景福宮",
+      location: "ソウル",
+      mapInfo: { type: "naver", query: "경복궁" },
+      note: "朝早く行くと空いてる",
+      visited: false,
+      memberId: "everyone",
+    };
+    expect(item.name).toBe("景福宮");
+    expect(item.visited).toBe(false);
+    expect(item.mapInfo?.type).toBe("naver");
+  });
+
+  it("should toggle visited state", () => {
+    const item: WishlistItem = { id: "w1", name: "明洞", visited: false };
+    const toggled = { ...item, visited: !item.visited };
+    expect(toggled.visited).toBe(true);
+  });
+
+  it("should filter by member", () => {
+    const items: WishlistItem[] = [
+      { id: "w1", name: "明洞", visited: false, memberId: "everyone" },
+      { id: "w2", name: "カロスキル", visited: false, memberId: "nanako" },
+      { id: "w3", name: "DDP", visited: false, memberId: "shohei" },
+    ];
+    const nanakoItems = items.filter((i) => i.memberId === "nanako" || i.memberId === "everyone");
+    expect(nanakoItems.length).toBe(2);
+  });
+});
+
+// ---- Shopping Items Tests ----
+describe("Shopping Items", () => {
+  it("should create a shopping item", () => {
+    const item: ShoppingItem = {
+      id: "s1",
+      name: "韓国コスメ",
+      quantity: 3,
+      price: "₩15,000",
+      note: "明洞で買う",
+      bought: false,
+      memberId: "nanako",
+    };
+    expect(item.name).toBe("韓国コスメ");
+    expect(item.bought).toBe(false);
+    expect(item.price).toBe("₩15,000");
+  });
+
+  it("should toggle bought state", () => {
+    const item: ShoppingItem = { id: "s1", name: "お菓子", quantity: 1, bought: false };
+    const toggled = { ...item, bought: !item.bought };
+    expect(toggled.bought).toBe(true);
+  });
+
+  it("should filter by member", () => {
+    const items: ShoppingItem[] = [
+      { id: "s1", name: "お土産", quantity: 5, bought: false, memberId: "everyone" },
+      { id: "s2", name: "コスメ", quantity: 2, bought: false, memberId: "nanako" },
+      { id: "s3", name: "靴下", quantity: 3, bought: true, memberId: "shohei" },
+    ];
+    const boughtItems = items.filter((i) => i.bought);
+    expect(boughtItems.length).toBe(1);
+    const everyoneItems = items.filter((i) => i.memberId === "everyone");
+    expect(everyoneItems.length).toBe(1);
+  });
 });
 
 // ---- Trip Management Tests ----
 describe("Trip Management", () => {
   it("should create a trip with all required fields", () => {
-    const trip: Trip = {
-      id: "trip-test",
-      name: "テスト旅行",
-      emoji: "✈️",
-      startDate: "2026-06-01",
-      endDate: "2026-06-05",
+    const trip = makeTripBase({
       days: generateDays("2026-06-01", "2026-06-05"),
-      events: [],
-      members: [],
-      packingItems: [],
-      createdAt: "2026-01-01T00:00:00Z",
-      updatedAt: "2026-01-01T00:00:00Z",
-    };
+    });
     expect(trip.days.length).toBe(5);
     expect(trip.name).toBe("テスト旅行");
+    expect(trip.wishlistItems).toEqual([]);
+    expect(trip.shoppingItems).toEqual([]);
   });
 
   it("should add events to a trip", () => {
-    const trip: Trip = {
+    const trip = makeTripBase({
       id: "trip-add",
       name: "追加テスト",
       emoji: "🏖️",
       startDate: "2026-07-01",
       endDate: "2026-07-02",
       days: generateDays("2026-07-01", "2026-07-02"),
-      events: [],
       members: [{ id: "m1", name: "テスト", emoji: "😀", color: "#FF0000" }],
-      packingItems: [],
-      createdAt: "2026-01-01T00:00:00Z",
-      updatedAt: "2026-01-01T00:00:00Z",
-    };
+    });
     const newEvent: ScheduleEvent = {
       id: "ev-new",
       dayIndex: 0,
@@ -511,7 +592,7 @@ describe("Trip Management", () => {
   });
 
   it("should share trip as text", () => {
-    const trip: Trip = {
+    const trip = makeTripBase({
       id: "trip-share",
       name: "共有テスト",
       emoji: "🌏",
@@ -522,12 +603,7 @@ describe("Trip Management", () => {
         { id: "s1", dayIndex: 0, startTime: "09:00", endTime: "10:00", title: "朝食", members: ["everyone"] },
         { id: "s2", dayIndex: 1, startTime: "14:00", endTime: "15:00", title: "観光", members: ["everyone"] },
       ],
-      members: [],
-      packingItems: [],
-      createdAt: "2026-01-01T00:00:00Z",
-      updatedAt: "2026-01-01T00:00:00Z",
-    };
-    // Simulate share text generation
+    });
     const lines: string[] = [`🌏 ${trip.name}`];
     trip.days.forEach((day) => {
       lines.push(`\n--- ${day.dayLabel} (${day.label}) ---`);
@@ -540,5 +616,37 @@ describe("Trip Management", () => {
     expect(shareText).toContain("共有テスト");
     expect(shareText).toContain("朝食");
     expect(shareText).toContain("観光");
+  });
+
+  it("should import trip data", () => {
+    const importData = {
+      name: "大阪旅行",
+      emoji: "🏯",
+      startDate: "2026-09-01",
+      endDate: "2026-09-03",
+      days: generateDays("2026-09-01", "2026-09-03"),
+      events: [{ id: "e1", dayIndex: 0, startTime: "10:00", endTime: "11:00", title: "道頓堀", members: ["everyone"] }],
+      members: [{ id: "m1", name: "太郎", emoji: "👨", color: "#FF0000" }],
+      packingItems: [],
+      wishlistItems: [{ id: "w1", name: "大阪城", visited: false }],
+      shoppingItems: [{ id: "s1", name: "たこ焼き", quantity: 1, bought: false }],
+    };
+    // Simulate import: create new trip with new IDs
+    const imported = makeTripBase({
+      id: "imported-trip",
+      name: importData.name,
+      emoji: importData.emoji,
+      startDate: importData.startDate,
+      endDate: importData.endDate,
+      days: importData.days,
+      events: importData.events,
+      members: importData.members,
+      wishlistItems: importData.wishlistItems as WishlistItem[],
+      shoppingItems: importData.shoppingItems as ShoppingItem[],
+    });
+    expect(imported.name).toBe("大阪旅行");
+    expect(imported.events.length).toBe(1);
+    expect(imported.wishlistItems.length).toBe(1);
+    expect(imported.shoppingItems.length).toBe(1);
   });
 });

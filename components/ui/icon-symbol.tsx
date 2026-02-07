@@ -32,6 +32,8 @@ const MAPPING = {
   "xmark.circle.fill": "cancel",
   "link": "link",
   "globe": "language",
+  "mappin.and.ellipse": "place",
+  "bag.fill": "shopping-bag",
 } as IconMapping;
 
 export function IconSymbol({

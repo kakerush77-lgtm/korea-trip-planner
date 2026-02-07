@@ -16,6 +16,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
 import { ScheduleEvent, MemberId, EventLink, MapInfo, MapType } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
+import { ScrollTimePicker } from "@/components/scroll-time-picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const CATEGORIES = [
@@ -27,9 +28,6 @@ const CATEGORIES = [
   { value: "activity", label: "アクティビティ", icon: "🎮" },
   { value: "other", label: "その他", icon: "📌" },
 ];
-
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
-const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
 
 function genLinkId() {
   return `lnk-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
@@ -66,6 +64,10 @@ export default function EventFormScreen() {
   const [mapUrl, setMapUrl] = useState(existingEvent?.mapInfo?.url ?? "");
   const [links, setLinks] = useState<EventLink[]>(existingEvent?.links ?? []);
   const [note, setNote] = useState(existingEvent?.note ?? "");
+
+  // Time picker modal states
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   const allMembers = useMemo(() => [EVERYONE_MEMBER, ...members], [members]);
 
@@ -216,114 +218,37 @@ export default function EventFormScreen() {
             </ScrollView>
           </View>
 
-          {/* Time - Picker style */}
+          {/* Time - Scroll Picker */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.foreground }]}>時間</Text>
-            <View style={styles.timePickerRow}>
-              {/* Start time */}
-              <View style={styles.timePickerGroup}>
-                <Text style={[styles.timeLabel, { color: colors.muted }]}>開始</Text>
-                <View style={styles.timeSelectors}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
-                    <View style={styles.timeChipRow}>
-                      {HOURS.map((h) => (
-                        <Pressable
-                          key={`sh-${h}`}
-                          onPress={() => setStartHour(h)}
-                          style={[
-                            styles.timeChip,
-                            {
-                              backgroundColor: startHour === h ? colors.primary : colors.surface,
-                              borderColor: startHour === h ? colors.primary : colors.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.timeChipText, { color: startHour === h ? "#fff" : colors.foreground }]}>
-                            {h}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </ScrollView>
-                  <Text style={[styles.timeSep, { color: colors.muted }]}>:</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
-                    <View style={styles.timeChipRow}>
-                      {MINUTES.map((m) => (
-                        <Pressable
-                          key={`sm-${m}`}
-                          onPress={() => setStartMin(m)}
-                          style={[
-                            styles.timeChip,
-                            {
-                              backgroundColor: startMin === m ? colors.primary : colors.surface,
-                              borderColor: startMin === m ? colors.primary : colors.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.timeChipText, { color: startMin === m ? "#fff" : colors.foreground }]}>
-                            {m}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </View>
-              </View>
-              {/* End time */}
-              <View style={styles.timePickerGroup}>
-                <Text style={[styles.timeLabel, { color: colors.muted }]}>終了</Text>
-                <View style={styles.timeSelectors}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
-                    <View style={styles.timeChipRow}>
-                      {HOURS.map((h) => (
-                        <Pressable
-                          key={`eh-${h}`}
-                          onPress={() => setEndHour(h)}
-                          style={[
-                            styles.timeChip,
-                            {
-                              backgroundColor: endHour === h ? colors.primary : colors.surface,
-                              borderColor: endHour === h ? colors.primary : colors.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.timeChipText, { color: endHour === h ? "#fff" : colors.foreground }]}>
-                            {h}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </ScrollView>
-                  <Text style={[styles.timeSep, { color: colors.muted }]}>:</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
-                    <View style={styles.timeChipRow}>
-                      {MINUTES.map((m) => (
-                        <Pressable
-                          key={`em-${m}`}
-                          onPress={() => setEndMin(m)}
-                          style={[
-                            styles.timeChip,
-                            {
-                              backgroundColor: endMin === m ? colors.primary : colors.surface,
-                              borderColor: endMin === m ? colors.primary : colors.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[styles.timeChipText, { color: endMin === m ? "#fff" : colors.foreground }]}>
-                            {m}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </View>
-              </View>
-            </View>
-            <View style={[styles.timePreview, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <MaterialIcons name="schedule" size={16} color={colors.primary} />
-              <Text style={[styles.timePreviewText, { color: colors.foreground }]}>
-                {startHour}:{startMin} 〜 {endHour}:{endMin}
-              </Text>
+            <View style={styles.timeRow}>
+              <Pressable
+                onPress={() => setShowStartPicker(true)}
+                style={({ pressed }) => [
+                  styles.timeButton,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.timeButtonLabel, { color: colors.muted }]}>開始</Text>
+                <Text style={[styles.timeButtonValue, { color: colors.foreground }]}>
+                  {startHour}:{startMin}
+                </Text>
+              </Pressable>
+              <MaterialIcons name="arrow-forward" size={18} color={colors.muted} />
+              <Pressable
+                onPress={() => setShowEndPicker(true)}
+                style={({ pressed }) => [
+                  styles.timeButton,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.timeButtonLabel, { color: colors.muted }]}>終了</Text>
+                <Text style={[styles.timeButtonValue, { color: colors.foreground }]}>
+                  {endHour}:{endMin}
+                </Text>
+              </Pressable>
             </View>
           </View>
 
@@ -400,7 +325,6 @@ export default function EventFormScreen() {
           {/* Map */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.foreground }]}>マップ</Text>
-            {/* Map type selector */}
             <View style={styles.chipRow}>
               <Pressable
                 onPress={() => setMapType("naver")}
@@ -534,6 +458,24 @@ export default function EventFormScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Time Pickers */}
+      <ScrollTimePicker
+        visible={showStartPicker}
+        onClose={() => setShowStartPicker(false)}
+        onConfirm={(h, m) => { setStartHour(h); setStartMin(m); }}
+        initialHour={startHour}
+        initialMinute={startMin}
+        label="開始時間"
+      />
+      <ScrollTimePicker
+        visible={showEndPicker}
+        onClose={() => setShowEndPicker(false)}
+        onConfirm={(h, m) => { setEndHour(h); setEndMin(m); }}
+        initialHour={endHour}
+        initialMinute={endMin}
+        label="終了時間"
+      />
     </ScreenContainer>
   );
 }
@@ -568,32 +510,21 @@ const styles = StyleSheet.create({
   },
   chipIcon: { fontSize: 14 },
   chipText: { fontSize: 13, fontWeight: "600" },
-  timePickerRow: { gap: 12 },
-  timePickerGroup: { gap: 6 },
-  timeLabel: { fontSize: 12, fontWeight: "600" },
-  timeSelectors: { flexDirection: "row", alignItems: "center", gap: 4 },
-  timeScrollH: { maxHeight: 36 },
-  timeChipRow: { flexDirection: "row", gap: 4 },
-  timeChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    minWidth: 36,
-    alignItems: "center",
-  },
-  timeChipText: { fontSize: 13, fontWeight: "600" },
-  timeSep: { fontSize: 16, fontWeight: "700", marginHorizontal: 2 },
-  timePreview: {
+  timeRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
+    gap: 12,
   },
-  timePreviewText: { fontSize: 15, fontWeight: "700" },
+  timeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  timeButtonLabel: { fontSize: 11, fontWeight: "600", marginBottom: 4 },
+  timeButtonValue: { fontSize: 24, fontWeight: "700" },
   addLinkButton: {
     flexDirection: "row",
     alignItems: "center",

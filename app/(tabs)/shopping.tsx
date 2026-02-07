@@ -13,84 +13,64 @@ import {
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
-import { PackingItem } from "@/data/types";
+import { ShoppingItem } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-const CATEGORIES = [
-  { value: "all", label: "すべて", icon: "📦" },
-  { value: "clothes", label: "衣類", icon: "👕" },
-  { value: "toiletry", label: "洗面用具", icon: "🧴" },
-  { value: "electronics", label: "電子機器", icon: "🔌" },
-  { value: "documents", label: "書類", icon: "📄" },
-  { value: "medicine", label: "薬", icon: "💊" },
-  { value: "baby", label: "ベビー用品", icon: "👶" },
-  { value: "other", label: "その他", icon: "📌" },
-];
-
-export default function PackingScreen() {
+export default function ShoppingScreen() {
   const colors = useColors();
-  const { currentTrip, addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem } = useAppStore();
-  const [newItemName, setNewItemName] = useState("");
-  const [newItemCategory, setNewItemCategory] = useState("other");
-  const [newItemQuantity, setNewItemQuantity] = useState("1");
-  const [newItemMember, setNewItemMember] = useState("everyone");
+  const { currentTrip, addShoppingItem, deleteShoppingItem, toggleShoppingItem } = useAppStore();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [filterCategory, setFilterCategory] = useState("all");
+  const [newName, setNewName] = useState("");
+  const [newQuantity, setNewQuantity] = useState("1");
+  const [newPrice, setNewPrice] = useState("");
+  const [newNote, setNewNote] = useState("");
+  const [newMember, setNewMember] = useState("everyone");
   const [filterMember, setFilterMember] = useState("all");
 
   const members = currentTrip?.members ?? [];
-  const packingItems = currentTrip?.packingItems ?? [];
+  const shoppingItems = currentTrip?.shoppingItems ?? [];
 
   const allMemberOptions = useMemo(
-    () => [{ id: "all", name: "全員", emoji: "📦", color: "#666" }, EVERYONE_MEMBER, ...members],
+    () => [{ id: "all", name: "全員", emoji: "🛒", color: "#666" }, EVERYONE_MEMBER, ...members],
     [members]
   );
-
-  const assignMemberOptions = useMemo(
-    () => [EVERYONE_MEMBER, ...members],
-    [members]
-  );
+  const assignMemberOptions = useMemo(() => [EVERYONE_MEMBER, ...members], [members]);
 
   const filteredItems = useMemo(() => {
-    let items = packingItems;
-    if (filterCategory !== "all") {
-      items = items.filter((item) => (item.category ?? "other") === filterCategory);
-    }
-    if (filterMember !== "all") {
-      items = items.filter((item) => {
-        const mid = item.memberId ?? "everyone";
-        return mid === filterMember || mid === "everyone";
-      });
-    }
-    return items;
-  }, [packingItems, filterCategory, filterMember]);
+    if (filterMember === "all") return shoppingItems;
+    return shoppingItems.filter((i) => {
+      const mid = i.memberId ?? "everyone";
+      return mid === filterMember || mid === "everyone";
+    });
+  }, [shoppingItems, filterMember]);
 
-  const checkedCount = packingItems.filter((i) => i.checked).length;
-  const totalCount = packingItems.length;
-  const progress = totalCount > 0 ? checkedCount / totalCount : 0;
+  const boughtCount = shoppingItems.filter((i) => i.bought).length;
 
   function handleAdd() {
-    if (!newItemName.trim()) {
-      Alert.alert("エラー", "持ち物の名前を入力してください");
+    if (!newName.trim()) {
+      Alert.alert("エラー", "商品名を入力してください");
       return;
     }
-    const qty = parseInt(newItemQuantity) || 1;
-    addPackingItem({
-      name: newItemName.trim(),
-      category: newItemCategory,
+    const qty = parseInt(newQuantity) || 1;
+    addShoppingItem({
+      name: newName.trim(),
       quantity: qty,
-      checked: false,
-      memberId: newItemMember,
+      price: newPrice.trim() || undefined,
+      note: newNote.trim() || undefined,
+      bought: false,
+      memberId: newMember,
     });
-    setNewItemName("");
-    setNewItemQuantity("1");
+    setNewName("");
+    setNewQuantity("1");
+    setNewPrice("");
+    setNewNote("");
   }
 
-  function handleDelete(item: PackingItem) {
+  function handleDelete(item: ShoppingItem) {
     Alert.alert("削除", `「${item.name}」を削除しますか？`, [
       { text: "キャンセル", style: "cancel" },
-      { text: "削除", style: "destructive", onPress: () => deletePackingItem(item.id) },
+      { text: "削除", style: "destructive", onPress: () => deleteShoppingItem(item.id) },
     ]);
   }
 
@@ -101,48 +81,54 @@ export default function PackingScreen() {
   }
 
   const renderItem = useCallback(
-    ({ item }: { item: PackingItem }) => {
-      const cat = CATEGORIES.find((c) => c.value === (item.category ?? "other"));
+    ({ item }: { item: ShoppingItem }) => {
       const memberInfo = getMemberDisplay(item.memberId);
       return (
         <View
           style={[
             styles.itemCard,
             {
-              backgroundColor: item.checked ? colors.surface : colors.background,
+              backgroundColor: item.bought ? colors.surface : colors.background,
               borderColor: colors.border,
             },
           ]}
         >
           <Pressable
-            onPress={() => togglePackingItem(item.id)}
+            onPress={() => toggleShoppingItem(item.id)}
             style={({ pressed }) => [styles.checkbox, pressed && { opacity: 0.6 }]}
           >
             <MaterialIcons
-              name={item.checked ? "check-box" : "check-box-outline-blank"}
+              name={item.bought ? "check-circle" : "radio-button-unchecked"}
               size={24}
-              color={item.checked ? colors.primary : colors.muted}
+              color={item.bought ? colors.success : colors.muted}
             />
           </Pressable>
           <View style={styles.itemInfo}>
             <Text
               style={[
                 styles.itemName,
-                { color: item.checked ? colors.muted : colors.foreground },
-                item.checked && styles.itemNameChecked,
+                { color: item.bought ? colors.muted : colors.foreground },
+                item.bought && styles.itemNameChecked,
               ]}
             >
-              {cat?.icon} {item.name}
+              🛍️ {item.name}
             </Text>
             <View style={styles.itemMeta}>
               {item.quantity > 1 && (
                 <Text style={[styles.itemQuantity, { color: colors.muted }]}>×{item.quantity}</Text>
               )}
-              <Text style={[styles.itemCategory, { color: colors.muted }]}>{cat?.label ?? "その他"}</Text>
+              {item.price && (
+                <Text style={[styles.itemPrice, { color: colors.primary }]}>{item.price}</Text>
+              )}
               <Text style={[styles.itemMember, { color: colors.muted }]}>
                 {memberInfo.emoji} {memberInfo.name}
               </Text>
             </View>
+            {item.note && (
+              <Text style={[styles.itemNote, { color: colors.muted }]} numberOfLines={1}>
+                📝 {item.note}
+              </Text>
+            )}
           </View>
           <Pressable
             onPress={() => handleDelete(item)}
@@ -160,7 +146,7 @@ export default function PackingScreen() {
     return (
       <ScreenContainer>
         <View style={styles.emptyContainer}>
-          <Text style={{ fontSize: 48 }}>🧳</Text>
+          <Text style={{ fontSize: 48 }}>🛒</Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>旅行を作成してください</Text>
         </View>
       </ScreenContainer>
@@ -176,9 +162,9 @@ export default function PackingScreen() {
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <View>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>持ち物リスト</Text>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>買いたいもの</Text>
             <Text style={[styles.headerSub, { color: colors.muted }]}>
-              {checkedCount}/{totalCount}個 準備完了
+              {boughtCount}/{shoppingItems.length}個 購入済み
             </Text>
           </View>
           <Pressable
@@ -193,106 +179,74 @@ export default function PackingScreen() {
           </Pressable>
         </View>
 
-        {/* Progress bar */}
-        <View style={[styles.progressContainer, { backgroundColor: colors.surface }]}>
-          <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: progress >= 1 ? colors.success : colors.primary,
-                  width: `${progress * 100}%` as any,
-                },
-              ]}
-            />
-          </View>
-          <Text style={[styles.progressText, { color: progress >= 1 ? colors.success : colors.muted }]}>
-            {progress >= 1 ? "準備完了！🎉" : `${Math.round(progress * 100)}%`}
-          </Text>
-        </View>
-
         {/* Add form */}
         {showAddForm && (
           <View style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <TextInput
               style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-              value={newItemName}
-              onChangeText={setNewItemName}
-              placeholder="持ち物の名前"
+              value={newName}
+              onChangeText={setNewName}
+              placeholder="商品名"
               placeholderTextColor={colors.muted}
               returnKeyType="done"
-              onSubmitEditing={handleAdd}
               autoFocus
             />
-            {/* Member selector */}
+            <View style={styles.rowInputs}>
+              <View style={styles.halfInput}>
+                <Text style={[styles.addFormLabel, { color: colors.muted }]}>数量</Text>
+                <TextInput
+                  style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+                  value={newQuantity}
+                  onChangeText={setNewQuantity}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                  returnKeyType="done"
+                />
+              </View>
+              <View style={styles.halfInput}>
+                <Text style={[styles.addFormLabel, { color: colors.muted }]}>予算</Text>
+                <TextInput
+                  style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+                  value={newPrice}
+                  onChangeText={setNewPrice}
+                  placeholder="例: ₩15,000"
+                  placeholderTextColor={colors.muted}
+                  returnKeyType="done"
+                />
+              </View>
+            </View>
+            {/* Member */}
             <View style={styles.addFormSection}>
-              <Text style={[styles.addFormLabel, { color: colors.muted }]}>担当</Text>
+              <Text style={[styles.addFormLabel, { color: colors.muted }]}>誰が買う？</Text>
               <View style={styles.addCategoryRow}>
                 {assignMemberOptions.map((m) => (
                   <Pressable
                     key={m.id}
-                    onPress={() => setNewItemMember(m.id)}
+                    onPress={() => setNewMember(m.id)}
                     style={[
                       styles.miniChip,
                       {
-                        backgroundColor: newItemMember === m.id ? m.color : colors.background,
-                        borderColor: newItemMember === m.id ? m.color : colors.border,
+                        backgroundColor: newMember === m.id ? m.color : colors.background,
+                        borderColor: newMember === m.id ? m.color : colors.border,
                       },
                     ]}
                   >
                     <Text style={styles.miniChipIcon}>{m.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.miniChipText,
-                        { color: newItemMember === m.id ? "#fff" : colors.foreground },
-                      ]}
-                    >
+                    <Text style={[styles.miniChipText, { color: newMember === m.id ? "#fff" : colors.foreground }]}>
                       {m.name}
                     </Text>
                   </Pressable>
                 ))}
               </View>
             </View>
-            {/* Category selector */}
-            <View style={styles.addFormSection}>
-              <Text style={[styles.addFormLabel, { color: colors.muted }]}>カテゴリ</Text>
-              <View style={styles.addCategoryRow}>
-                {CATEGORIES.filter((c) => c.value !== "all").map((cat) => (
-                  <Pressable
-                    key={cat.value}
-                    onPress={() => setNewItemCategory(cat.value)}
-                    style={[
-                      styles.miniChip,
-                      {
-                        backgroundColor: newItemCategory === cat.value ? colors.primary : colors.background,
-                        borderColor: newItemCategory === cat.value ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text style={styles.miniChipIcon}>{cat.icon}</Text>
-                    <Text
-                      style={[
-                        styles.miniChipText,
-                        { color: newItemCategory === cat.value ? "#fff" : colors.foreground },
-                      ]}
-                    >
-                      {cat.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            <View style={styles.quantityRow}>
-              <Text style={[styles.quantityLabel, { color: colors.muted }]}>数量:</Text>
-              <TextInput
-                style={[styles.quantityInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
-                value={newItemQuantity}
-                onChangeText={setNewItemQuantity}
-                keyboardType="number-pad"
-                maxLength={3}
-                returnKeyType="done"
-              />
-            </View>
+            <TextInput
+              style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+              value={newNote}
+              onChangeText={setNewNote}
+              placeholder="メモ（任意）"
+              placeholderTextColor={colors.muted}
+              returnKeyType="done"
+            />
             <Pressable
               onPress={handleAdd}
               style={({ pressed }) => [
@@ -317,8 +271,8 @@ export default function PackingScreen() {
             renderItem={({ item: m }) => {
               const count =
                 m.id === "all"
-                  ? packingItems.length
-                  : packingItems.filter((i) => {
+                  ? shoppingItems.length
+                  : shoppingItems.filter((i) => {
                       const mid = i.memberId ?? "everyone";
                       return mid === m.id || mid === "everyone";
                     }).length;
@@ -348,45 +302,6 @@ export default function PackingScreen() {
           />
         </View>
 
-        {/* Category filter */}
-        <View style={styles.filterRow}>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={CATEGORIES}
-            keyExtractor={(item) => item.value}
-            contentContainerStyle={styles.filterScroll}
-            renderItem={({ item: cat }) => {
-              const count =
-                cat.value === "all"
-                  ? filteredItems.length
-                  : filteredItems.filter((i) => (i.category ?? "other") === cat.value).length;
-              return (
-                <Pressable
-                  onPress={() => setFilterCategory(cat.value)}
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: filterCategory === cat.value ? colors.primary : colors.surface,
-                      borderColor: filterCategory === cat.value ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={styles.filterIcon}>{cat.icon}</Text>
-                  <Text
-                    style={[
-                      styles.filterText,
-                      { color: filterCategory === cat.value ? "#fff" : colors.foreground },
-                    ]}
-                  >
-                    {cat.label} ({count})
-                  </Text>
-                </Pressable>
-              );
-            }}
-          />
-        </View>
-
         {/* Items list */}
         <FlatList
           data={filteredItems}
@@ -396,9 +311,9 @@ export default function PackingScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={{ fontSize: 40 }}>🧳</Text>
+              <Text style={{ fontSize: 40 }}>🛒</Text>
               <Text style={[styles.emptyText, { color: colors.muted }]}>
-                持ち物を追加しましょう
+                買いたいものを追加しましょう
               </Text>
             </View>
           }
@@ -426,16 +341,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  progressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 10,
-  },
-  progressBar: { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 3 },
-  progressText: { fontSize: 12, fontWeight: "700", minWidth: 50, textAlign: "right" },
   addForm: {
     margin: 16,
     marginBottom: 8,
@@ -447,6 +352,8 @@ const styles = StyleSheet.create({
   addFormSection: { gap: 4 },
   addFormLabel: { fontSize: 11, fontWeight: "700" },
   addInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  rowInputs: { flexDirection: "row", gap: 10 },
+  halfInput: { flex: 1, gap: 4 },
   addCategoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   miniChip: {
     flexDirection: "row",
@@ -459,12 +366,9 @@ const styles = StyleSheet.create({
   },
   miniChipIcon: { fontSize: 12 },
   miniChipText: { fontSize: 11, fontWeight: "600" },
-  quantityRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  quantityLabel: { fontSize: 13, fontWeight: "600" },
-  quantityInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, fontSize: 14, width: 50, textAlign: "center" },
   addSubmitButton: { paddingVertical: 10, borderRadius: 10, alignItems: "center" },
   addSubmitText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  filterRow: { paddingVertical: 3 },
+  filterRow: { paddingVertical: 6 },
   filterScroll: { paddingHorizontal: 16, gap: 6 },
   filterChip: {
     flexDirection: "row",
@@ -493,8 +397,9 @@ const styles = StyleSheet.create({
   itemNameChecked: { textDecorationLine: "line-through" },
   itemMeta: { flexDirection: "row", gap: 8 },
   itemQuantity: { fontSize: 12, fontWeight: "600" },
-  itemCategory: { fontSize: 12 },
+  itemPrice: { fontSize: 12, fontWeight: "700" },
   itemMember: { fontSize: 12 },
+  itemNote: { fontSize: 12 },
   emptyContainer: { alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 12 },
   emptyText: { fontSize: 14, fontWeight: "500" },
 });

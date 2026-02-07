@@ -1,5 +1,17 @@
-import { useCallback } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet, Share, Platform, Alert } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  StyleSheet,
+  Share,
+  Platform,
+  Alert,
+  TextInput,
+  Modal,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
@@ -11,14 +23,12 @@ function formatShareText(trip: Trip): string {
   let text = `${trip.emoji} ${trip.name}\n`;
   text += `${trip.startDate} 〜 ${trip.endDate}\n\n`;
 
-  // Members
   text += "【メンバー】\n";
   trip.members.forEach((m) => {
     text += `${m.emoji} ${m.name}\n`;
   });
   text += "\n";
 
-  // Schedule by day
   trip.days.forEach((day) => {
     text += `★☆★${day.label}(${day.dayLabel})★☆★\n`;
     const dayEvents = trip.events
@@ -39,7 +49,6 @@ function formatShareText(trip: Trip): string {
     text += "\n";
   });
 
-  // Packing list
   if (trip.packingItems && trip.packingItems.length > 0) {
     text += "【持ち物リスト】\n";
     trip.packingItems.forEach((item) => {
@@ -53,7 +62,9 @@ function formatShareText(trip: Trip): string {
 export default function SettingsScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { state, currentTrip, setCurrentTrip } = useAppStore();
+  const { state, currentTrip, setCurrentTrip, importTrip } = useAppStore();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importText, setImportText] = useState("");
 
   async function handleShare() {
     if (!currentTrip) return;
@@ -69,6 +80,63 @@ export default function SettingsScreen() {
       try {
         await Share.share({ message: text, title: currentTrip.name });
       } catch {}
+    }
+  }
+
+  async function handleExportJSON() {
+    if (!currentTrip) return;
+    const exportData = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      trip: currentTrip,
+    };
+    const json = JSON.stringify(exportData, null, 2);
+    if (Platform.OS === "web") {
+      try {
+        await navigator.clipboard.writeText(json);
+        Alert.alert("エクスポート完了", "旅行データ(JSON)をクリップボードにコピーしました。\n他の人にこのテキストを送って取り込んでもらえます。");
+      } catch {
+        Alert.alert("エクスポートデータ", "クリップボードへのコピーに失敗しました");
+      }
+    } else {
+      try {
+        await Share.share({ message: json, title: `${currentTrip.name} データ` });
+      } catch {}
+    }
+  }
+
+  function handleImport() {
+    if (!importText.trim()) {
+      Alert.alert("エラー", "JSONデータを貼り付けてください");
+      return;
+    }
+    try {
+      const parsed = JSON.parse(importText.trim());
+      const tripData = parsed.trip ?? parsed;
+
+      if (!tripData.name || !tripData.startDate || !tripData.endDate) {
+        Alert.alert("エラー", "有効な旅行データではありません");
+        return;
+      }
+
+      Alert.alert(
+        "旅行を取り込み",
+        `「${tripData.emoji ?? "✈️"} ${tripData.name}」を取り込みますか？`,
+        [
+          { text: "キャンセル", style: "cancel" },
+          {
+            text: "取り込む",
+            onPress: () => {
+              importTrip(tripData);
+              setImportText("");
+              setShowImportModal(false);
+              Alert.alert("完了", "旅行データを取り込みました");
+            },
+          },
+        ]
+      );
+    } catch {
+      Alert.alert("エラー", "JSONの形式が正しくありません。\nエクスポートされたデータをそのまま貼り付けてください。");
     }
   }
 
@@ -142,7 +210,7 @@ export default function SettingsScreen() {
         ListHeaderComponent={
           currentTrip ? (
             <View style={styles.actionSection}>
-              {/* Share */}
+              {/* Share text */}
               <Pressable
                 onPress={handleShare}
                 style={({ pressed }) => [
@@ -155,6 +223,40 @@ export default function SettingsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.actionTitle, { color: colors.foreground }]}>スケジュールを共有</Text>
                   <Text style={[styles.actionDesc, { color: colors.muted }]}>テキスト形式で共有・コピー</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
+              </Pressable>
+
+              {/* Export JSON */}
+              <Pressable
+                onPress={handleExportJSON}
+                style={({ pressed }) => [
+                  styles.actionCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="file-upload" size={22} color="#03C75A" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.actionTitle, { color: colors.foreground }]}>旅行データを書き出し</Text>
+                  <Text style={[styles.actionDesc, { color: colors.muted }]}>JSON形式で書き出し・他の人に送れます</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
+              </Pressable>
+
+              {/* Import JSON */}
+              <Pressable
+                onPress={() => setShowImportModal(true)}
+                style={({ pressed }) => [
+                  styles.actionCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="file-download" size={22} color="#4285F4" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.actionTitle, { color: colors.foreground }]}>旅行データを取り込み</Text>
+                  <Text style={[styles.actionDesc, { color: colors.muted }]}>他の人の旅行データを取り込む</Text>
                 </View>
                 <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
               </Pressable>
@@ -185,6 +287,54 @@ export default function SettingsScreen() {
           ) : null
         }
       />
+
+      {/* Import Modal */}
+      <Modal visible={showImportModal} transparent animationType="slide" onRequestClose={() => setShowImportModal(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowImportModal(false)}>
+          <Pressable style={[styles.modalContainer, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Pressable onPress={() => setShowImportModal(false)} style={({ pressed }) => [pressed && { opacity: 0.5 }]}>
+                <MaterialIcons name="close" size={24} color={colors.foreground} />
+              </Pressable>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>旅行データを取り込み</Text>
+              <Pressable
+                onPress={handleImport}
+                style={({ pressed }) => [
+                  styles.importButton,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={styles.importButtonText}>取り込む</Text>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <Text style={[styles.importHint, { color: colors.muted }]}>
+                他の人から受け取った旅行データ(JSON)を下に貼り付けてください。
+              </Text>
+              <TextInput
+                style={[
+                  styles.importInput,
+                  {
+                    color: colors.foreground,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+                value={importText}
+                onChangeText={setImportText}
+                placeholder='{"trip": {...}} の形式のJSONを貼り付け'
+                placeholderTextColor={colors.muted}
+                multiline
+                numberOfLines={12}
+                textAlignVertical="top"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -238,4 +388,36 @@ const styles = StyleSheet.create({
   tripActions: { alignItems: "flex-end", gap: 6 },
   currentBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   currentBadgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalContainer: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+  },
+  modalTitle: { fontSize: 16, fontWeight: "700" },
+  importButton: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18 },
+  importButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  modalBody: { padding: 16 },
+  importHint: { fontSize: 13, marginBottom: 12, lineHeight: 20 },
+  importInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 13,
+    minHeight: 200,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
 });

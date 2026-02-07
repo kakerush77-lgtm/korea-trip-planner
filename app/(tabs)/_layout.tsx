@@ -25,6 +25,9 @@ export default function TabLayout() {
           borderTopColor: colors.border,
           borderTopWidth: 0.5,
         },
+        tabBarLabelStyle: {
+          fontSize: 10,
+        },
       }}
     >
       <Tabs.Screen
@@ -32,16 +35,25 @@ export default function TabLayout() {
         options={{
           title: "スケジュール",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="calendar" color={color} />
+            <IconSymbol size={22} name="calendar" color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="members"
+        name="wishlist"
         options={{
-          title: "メンバー",
+          title: "行きたい",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="person.2.fill" color={color} />
+            <IconSymbol size={22} name="mappin.and.ellipse" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="shopping"
+        options={{
+          title: "買いたい",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={22} name="bag.fill" color={color} />
           ),
         }}
       />
@@ -50,16 +62,25 @@ export default function TabLayout() {
         options={{
           title: "持ち物",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="suitcase.fill" color={color} />
+            <IconSymbol size={22} name="suitcase.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="members"
+        options={{
+          title: "メンバー",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={22} name="person.2.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "旅行管理",
+          title: "管理",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="globe" color={color} />
+            <IconSymbol size={22} name="globe" color={color} />
           ),
         }}
       />

@@ -15,9 +15,21 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore, generateDays } from "@/lib/store";
 import { EmojiPicker } from "@/components/emoji-picker";
+import { CalendarPicker } from "@/components/calendar-picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const TRIP_EMOJIS = ["✈️", "🇰🇷", "🇯🇵", "🇺🇸", "🇫🇷", "🇮🇹", "🇹🇭", "🇹🇼", "🏖️", "🏔️", "🌏", "🗺️", "🚗", "🚢", "🏕️", "🎒"];
+
+function formatDisplayDate(dateStr: string): string {
+  if (!dateStr) return "選択してください";
+  try {
+    const d = new Date(dateStr + "T00:00:00");
+    const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}(${weekdays[d.getDay()]})`;
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function TripFormScreen() {
   const colors = useColors();
@@ -33,17 +45,8 @@ export default function TripFormScreen() {
   const [startDate, setStartDate] = useState(existingTrip?.startDate ?? "");
   const [endDate, setEndDate] = useState(existingTrip?.endDate ?? "");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
-  function formatDateInput(text: string, setter: (v: string) => void) {
-    const cleaned = text.replace(/[^0-9-]/g, "");
-    if (cleaned.length === 4 && !cleaned.includes("-")) {
-      setter(cleaned + "-");
-    } else if (cleaned.length === 7 && cleaned.charAt(4) === "-" && cleaned.charAt(6) !== "-") {
-      setter(cleaned.slice(0, 7) + "-" + cleaned.slice(7));
-    } else {
-      setter(cleaned.slice(0, 10));
-    }
-  }
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [showEndCalendar, setShowEndCalendar] = useState(false);
 
   function handleSave() {
     if (!name.trim()) {
@@ -51,7 +54,7 @@ export default function TripFormScreen() {
       return;
     }
     if (!startDate || !endDate) {
-      Alert.alert("エラー", "開始日と終了日を入力してください");
+      Alert.alert("エラー", "開始日と終了日を選択してください");
       return;
     }
     if (startDate > endDate) {
@@ -60,7 +63,6 @@ export default function TripFormScreen() {
     }
 
     if (isEditing && existingTrip) {
-      // Regenerate days if dates changed
       const newDays =
         existingTrip.startDate !== startDate || existingTrip.endDate !== endDate
           ? generateDays(startDate, endDate)
@@ -181,34 +183,52 @@ export default function TripFormScreen() {
             />
           </View>
 
-          {/* Start Date */}
+          {/* Date selection with calendar */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>開始日 *</Text>
-            <TextInput
-              style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
-              value={startDate}
-              onChangeText={(t) => formatDateInput(t, setStartDate)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.muted}
-              keyboardType="numbers-and-punctuation"
-              maxLength={10}
-              returnKeyType="done"
-            />
-          </View>
-
-          {/* End Date */}
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>終了日 *</Text>
-            <TextInput
-              style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
-              value={endDate}
-              onChangeText={(t) => formatDateInput(t, setEndDate)}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.muted}
-              keyboardType="numbers-and-punctuation"
-              maxLength={10}
-              returnKeyType="done"
-            />
+            <Text style={[styles.label, { color: colors.foreground }]}>旅行期間 *</Text>
+            <View style={styles.dateRow}>
+              <Pressable
+                onPress={() => setShowStartCalendar(true)}
+                style={({ pressed }) => [
+                  styles.dateButton,
+                  { backgroundColor: colors.surface, borderColor: startDate ? colors.primary : colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="event" size={18} color={startDate ? colors.primary : colors.muted} />
+                <View>
+                  <Text style={[styles.dateLabel, { color: colors.muted }]}>開始日</Text>
+                  <Text style={[styles.dateValue, { color: startDate ? colors.foreground : colors.muted }]}>
+                    {formatDisplayDate(startDate)}
+                  </Text>
+                </View>
+              </Pressable>
+              <MaterialIcons name="arrow-forward" size={16} color={colors.muted} />
+              <Pressable
+                onPress={() => setShowEndCalendar(true)}
+                style={({ pressed }) => [
+                  styles.dateButton,
+                  { backgroundColor: colors.surface, borderColor: endDate ? colors.primary : colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="event" size={18} color={endDate ? colors.primary : colors.muted} />
+                <View>
+                  <Text style={[styles.dateLabel, { color: colors.muted }]}>終了日</Text>
+                  <Text style={[styles.dateValue, { color: endDate ? colors.foreground : colors.muted }]}>
+                    {formatDisplayDate(endDate)}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+            {startDate && endDate && startDate <= endDate && (
+              <View style={[styles.durationBadge, { backgroundColor: colors.primary + "15" }]}>
+                <MaterialIcons name="date-range" size={14} color={colors.primary} />
+                <Text style={[styles.durationText, { color: colors.primary }]}>
+                  {Math.ceil((new Date(endDate + "T00:00:00").getTime() - new Date(startDate + "T00:00:00").getTime()) / 86400000) + 1}日間の旅行
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Delete */}
@@ -235,6 +255,22 @@ export default function TripFormScreen() {
         onClose={() => setShowEmojiPicker(false)}
         onSelect={setEmoji}
         currentEmoji={emoji}
+      />
+      <CalendarPicker
+        visible={showStartCalendar}
+        onClose={() => setShowStartCalendar(false)}
+        onSelect={(date) => {
+          setStartDate(date);
+          if (!endDate || date > endDate) setEndDate(date);
+        }}
+        selectedDate={startDate}
+      />
+      <CalendarPicker
+        visible={showEndCalendar}
+        onClose={() => setShowEndCalendar(false)}
+        onSelect={setEndDate}
+        selectedDate={endDate}
+        minDate={startDate || undefined}
       />
     </ScreenContainer>
   );
@@ -269,6 +305,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emojiOptionText: { fontSize: 22 },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dateButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  dateLabel: { fontSize: 10, fontWeight: "600" },
+  dateValue: { fontSize: 13, fontWeight: "600", marginTop: 2 },
+  durationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  durationText: { fontSize: 13, fontWeight: "600" },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
