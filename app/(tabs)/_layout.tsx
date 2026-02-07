@@ -40,11 +40,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="wishlist"
+        name="links"
         options={{
-          title: "行きたい",
+          title: "リンク集",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="mappin.and.ellipse" color={color} />
+            <IconSymbol size={22} name="link" color={color} />
           ),
         }}
       />

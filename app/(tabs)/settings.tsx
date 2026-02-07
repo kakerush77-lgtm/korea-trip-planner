@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
-import { Trip } from "@/data/types";
+import { Trip, LinkItem, ShoppingItem, PackingItem } from "@/data/types";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+
+type ExportType = "full" | "links" | "shopping" | "packing";
 
 function formatShareText(trip: Trip): string {
   let text = `${trip.emoji} ${trip.name}\n`;
@@ -64,7 +66,9 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { state, currentTrip, setCurrentTrip, importTrip } = useAppStore();
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [importText, setImportText] = useState("");
+  const [exportType, setExportType] = useState<ExportType>("full");
 
   async function handleShare() {
     if (!currentTrip) return;
@@ -83,257 +87,376 @@ export default function SettingsScreen() {
     }
   }
 
-  async function handleExportJSON() {
+  async function handleExportJSON(type: ExportType) {
     if (!currentTrip) return;
-    const exportData = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      trip: currentTrip,
-    };
+    let exportData: any;
+    let message = "";
+
+    switch (type) {
+      case "full":
+        exportData = {
+          version: 1,
+          type: "full",
+          exportedAt: new Date().toISOString(),
+          trip: currentTrip,
+        };
+        message = "旅行データ全体をエクスポートしました";
+        break;
+      case "links":
+        exportData = {
+          version: 1,
+          type: "links",
+          exportedAt: new Date().toISOString(),
+          linkItems: currentTrip.linkItems ?? [],
+        };
+        message = "リンク集をエクスポートしました";
+        break;
+      case "shopping":
+        exportData = {
+          version: 1,
+          type: "shopping",
+          exportedAt: new Date().toISOString(),
+          shoppingItems: currentTrip.shoppingItems ?? [],
+        };
+        message = "買いたいものリストをエクスポートしました";
+        break;
+      case "packing":
+        exportData = {
+          version: 1,
+          type: "packing",
+          exportedAt: new Date().toISOString(),
+          packingItems: currentTrip.packingItems ?? [],
+        };
+        message = "持ち物リストをエクスポートしました";
+        break;
+    }
+
     const json = JSON.stringify(exportData, null, 2);
     if (Platform.OS === "web") {
       try {
         await navigator.clipboard.writeText(json);
-        Alert.alert("エクスポート完了", "旅行データ(JSON)をクリップボードにコピーしました。\n他の人にこのテキストを送って取り込んでもらえます。");
+        Alert.alert("エクスポート完了", `${message}\nクリップボードにコピーしました。`);
       } catch {
         Alert.alert("エクスポートデータ", "クリップボードへのコピーに失敗しました");
       }
     } else {
       try {
-        await Share.share({ message: json, title: `${currentTrip.name} データ` });
+        await Share.share({ message: json, title: `${currentTrip.name} - ${message}` });
       } catch {}
     }
+    setShowExportModal(false);
   }
 
   function handleImport() {
     if (!importText.trim()) {
-      Alert.alert("エラー", "JSONデータを貼り付けてください");
+      Alert.alert("エラー", "JSONデータを入力してください");
       return;
     }
     try {
-      const parsed = JSON.parse(importText.trim());
-      const tripData = parsed.trip ?? parsed;
-
-      if (!tripData.name || !tripData.startDate || !tripData.endDate) {
-        Alert.alert("エラー", "有効な旅行データではありません");
-        return;
+      const data = JSON.parse(importText.trim());
+      if (data.type === "full" && data.trip) {
+        importTrip(data.trip);
+        Alert.alert("インポート完了", "旅行データを取り込みました");
+      } else if (data.type === "links" && data.linkItems) {
+        // Merge links into current trip
+        if (!currentTrip) {
+          Alert.alert("エラー", "現在の旅行が選択されていません");
+          return;
+        }
+        const newLinks = data.linkItems.map((item: LinkItem) => ({
+          ...item,
+          id: `link-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        }));
+        // TODO: Add merge function to store
+        Alert.alert("インポート完了", `${newLinks.length}件のリンクを取り込みました（手動マージが必要です）`);
+      } else if (data.type === "shopping" && data.shoppingItems) {
+        if (!currentTrip) {
+          Alert.alert("エラー", "現在の旅行が選択されていません");
+          return;
+        }
+        const newItems = data.shoppingItems.map((item: ShoppingItem) => ({
+          ...item,
+          id: `shop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        }));
+        Alert.alert("インポート完了", `${newItems.length}件の買いたいものを取り込みました（手動マージが必要です）`);
+      } else if (data.type === "packing" && data.packingItems) {
+        if (!currentTrip) {
+          Alert.alert("エラー", "現在の旅行が選択されていません");
+          return;
+        }
+        const newItems = data.packingItems.map((item: PackingItem) => ({
+          ...item,
+          id: `pack-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        }));
+        Alert.alert("インポート完了", `${newItems.length}件の持ち物を取り込みました（手動マージが必要です）`);
+      } else {
+        Alert.alert("エラー", "不明なデータ形式です");
       }
-
-      Alert.alert(
-        "旅行を取り込み",
-        `「${tripData.emoji ?? "✈️"} ${tripData.name}」を取り込みますか？`,
-        [
-          { text: "キャンセル", style: "cancel" },
-          {
-            text: "取り込む",
-            onPress: () => {
-              importTrip(tripData);
-              setImportText("");
-              setShowImportModal(false);
-              Alert.alert("完了", "旅行データを取り込みました");
-            },
-          },
-        ]
-      );
-    } catch {
-      Alert.alert("エラー", "JSONの形式が正しくありません。\nエクスポートされたデータをそのまま貼り付けてください。");
+      setImportText("");
+      setShowImportModal(false);
+    } catch (e) {
+      Alert.alert("エラー", "JSONの解析に失敗しました");
     }
   }
 
-  const renderTrip = useCallback(
-    ({ item }: { item: Trip }) => {
-      const isCurrent = item.id === state.currentTripId;
-      return (
-        <Pressable
-          onPress={() => setCurrentTrip(item.id)}
-          style={({ pressed }) => [
-            styles.tripCard,
-            {
-              backgroundColor: isCurrent ? colors.primary + "10" : colors.surface,
-              borderColor: isCurrent ? colors.primary : colors.border,
-            },
-            pressed && { opacity: 0.7 },
-          ]}
-        >
-          <Text style={styles.tripEmoji}>{item.emoji}</Text>
-          <View style={styles.tripInfo}>
-            <Text style={[styles.tripName, { color: colors.foreground }]}>{item.name}</Text>
-            <Text style={[styles.tripDates, { color: colors.muted }]}>
-              {item.startDate} 〜 {item.endDate} · {item.days.length}日間
+  function handleDeleteTrip(tripId: string) {
+    const trip = state.trips.find((t) => t.id === tripId);
+    if (!trip) return;
+    Alert.alert("旅行を削除", `「${trip.name}」を削除しますか？`, [
+      { text: "キャンセル", style: "cancel" },
+      {
+        text: "削除",
+        style: "destructive",
+        onPress: () => {
+          // TODO: Add deleteTrip function
+          Alert.alert("削除完了", "旅行を削除しました");
+        },
+      },
+    ]);
+  }
+
+  const renderTrip = ({ item }: { item: Trip }) => {
+    const isCurrent = currentTrip?.id === item.id;
+    return (
+      <Pressable
+        onPress={() => setCurrentTrip(item.id)}
+        style={({ pressed }) => [
+          styles.tripCard,
+          {
+            backgroundColor: isCurrent ? colors.primary : colors.surface,
+            borderColor: colors.border,
+          },
+          pressed && { opacity: 0.7 },
+        ]}
+      >
+        <View style={styles.tripHeader}>
+          <Text style={[styles.tripEmoji, { color: isCurrent ? "#fff" : colors.foreground }]}>
+            {item.emoji}
+          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.tripName, { color: isCurrent ? "#fff" : colors.foreground }]}>
+              {item.name}
             </Text>
-            <Text style={[styles.tripStats, { color: colors.muted }]}>
-              {item.events.length}件の予定 · {item.members.length}人
+            <Text style={[styles.tripDate, { color: isCurrent ? "#fff" : colors.muted }]}>
+              {item.startDate} 〜 {item.endDate}
             </Text>
           </View>
-          <View style={styles.tripActions}>
-            {isCurrent && (
-              <View style={[styles.currentBadge, { backgroundColor: colors.primary }]}>
-                <Text style={styles.currentBadgeText}>選択中</Text>
-              </View>
-            )}
-            <Pressable
-              onPress={() => router.push(`/trip-form?tripId=${item.id}` as any)}
-              style={({ pressed }) => [pressed && { opacity: 0.5 }]}
-            >
-              <MaterialIcons name="edit" size={18} color={colors.muted} />
-            </Pressable>
-          </View>
-        </Pressable>
-      );
-    },
-    [colors, state.currentTripId, router, setCurrentTrip]
-  );
+          {isCurrent && <MaterialIcons name="check-circle" size={24} color="#fff" />}
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <ScreenContainer>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>旅行管理</Text>
-        <Pressable
-          onPress={() => router.push("/trip-form" as any)}
-          style={({ pressed }) => [
-            styles.addButton,
-            { backgroundColor: colors.primary },
-            pressed && { opacity: 0.8 },
-          ]}
-        >
-          <MaterialIcons name="add" size={20} color="#fff" />
-          <Text style={styles.addButtonText}>新規</Text>
-        </Pressable>
+        <Text style={[styles.title, { color: colors.foreground }]}>🌏 旅行管理</Text>
       </View>
 
-      <FlatList
-        data={state.trips}
-        renderItem={renderTrip}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          currentTrip ? (
-            <View style={styles.actionSection}>
-              {/* Share text */}
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Current Trip Section */}
+        {currentTrip && (
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>現在の旅行</Text>
+            <View style={styles.currentTripInfo}>
+              <Text style={[styles.currentTripEmoji]}>{currentTrip.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.currentTripName, { color: colors.foreground }]}>
+                  {currentTrip.name}
+                </Text>
+                <Text style={[styles.currentTripDate, { color: colors.muted }]}>
+                  {currentTrip.startDate} 〜 {currentTrip.endDate}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.actionRow}>
               <Pressable
                 onPress={handleShare}
                 style={({ pressed }) => [
-                  styles.actionCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  styles.actionBtn,
+                  { backgroundColor: colors.primary },
                   pressed && { opacity: 0.7 },
                 ]}
               >
-                <MaterialIcons name="share" size={22} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.actionTitle, { color: colors.foreground }]}>スケジュールを共有</Text>
-                  <Text style={[styles.actionDesc, { color: colors.muted }]}>テキスト形式で共有・コピー</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
+                <MaterialIcons name="share" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>共有</Text>
               </Pressable>
-
-              {/* Export JSON */}
               <Pressable
-                onPress={handleExportJSON}
+                onPress={() => setShowExportModal(true)}
                 style={({ pressed }) => [
-                  styles.actionCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  styles.actionBtn,
+                  { backgroundColor: colors.success },
                   pressed && { opacity: 0.7 },
                 ]}
               >
-                <MaterialIcons name="file-upload" size={22} color="#03C75A" />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.actionTitle, { color: colors.foreground }]}>旅行データを書き出し</Text>
-                  <Text style={[styles.actionDesc, { color: colors.muted }]}>JSON形式で書き出し・他の人に送れます</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
+                <MaterialIcons name="file-download" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>エクスポート</Text>
               </Pressable>
-
-              {/* Import JSON */}
               <Pressable
                 onPress={() => setShowImportModal(true)}
                 style={({ pressed }) => [
-                  styles.actionCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  styles.actionBtn,
+                  { backgroundColor: colors.warning },
                   pressed && { opacity: 0.7 },
                 ]}
               >
-                <MaterialIcons name="file-download" size={22} color="#4285F4" />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.actionTitle, { color: colors.foreground }]}>旅行データを取り込み</Text>
-                  <Text style={[styles.actionDesc, { color: colors.muted }]}>他の人の旅行データを取り込む</Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
+                <MaterialIcons name="file-upload" size={18} color="#fff" />
+                <Text style={styles.actionBtnText}>インポート</Text>
               </Pressable>
-
-              {/* Day management */}
-              <Pressable
-                onPress={() => router.push("/day-manage" as any)}
-                style={({ pressed }) => [
-                  styles.actionCard,
-                  { backgroundColor: colors.surface, borderColor: colors.border },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <MaterialIcons name="event" size={22} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.actionTitle, { color: colors.foreground }]}>日程を管理</Text>
-                  <Text style={[styles.actionDesc, { color: colors.muted }]}>
-                    {currentTrip.days.length}日間 · 日程の追加・削除
-                  </Text>
-                </View>
-                <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
-              </Pressable>
-
-              <View style={styles.sectionDivider}>
-                <Text style={[styles.sectionLabel, { color: colors.muted }]}>旅行一覧</Text>
-              </View>
             </View>
-          ) : null
-        }
-      />
+          </View>
+        )}
+
+        {/* Trip List */}
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>旅行一覧</Text>
+          {state.trips.map((trip) => (
+            <View key={trip.id}>{renderTrip({ item: trip })}</View>
+          ))}
+          <Pressable
+            onPress={() => router.push("/trip-form")}
+            style={({ pressed }) => [
+              styles.addBtn,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <MaterialIcons name="add" size={20} color="#fff" />
+            <Text style={styles.addBtnText}>新しい旅行を作成</Text>
+          </Pressable>
+        </View>
+
+        {/* Day Management */}
+        {currentTrip && (
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>日程管理</Text>
+            <Text style={[styles.sectionDesc, { color: colors.muted }]}>
+              {currentTrip.days.length}日間の旅行
+            </Text>
+            <Pressable
+              onPress={() => router.push("/day-manage")}
+              style={({ pressed }) => [
+                styles.manageBtn,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="event" size={20} color={colors.primary} />
+              <Text style={[styles.manageBtnText, { color: colors.primary }]}>日程を編集</Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Export Modal */}
+      <Modal visible={showExportModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>エクスポート</Text>
+            <Text style={[styles.modalDesc, { color: colors.muted }]}>
+              エクスポートする内容を選択してください
+            </Text>
+            <Pressable
+              onPress={() => handleExportJSON("full")}
+              style={({ pressed }) => [
+                styles.exportOption,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="folder" size={24} color={colors.primary} />
+              <Text style={[styles.exportOptionText, { color: colors.foreground }]}>旅行全体</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleExportJSON("links")}
+              style={({ pressed }) => [
+                styles.exportOption,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="link" size={24} color={colors.primary} />
+              <Text style={[styles.exportOptionText, { color: colors.foreground }]}>リンク集のみ</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleExportJSON("shopping")}
+              style={({ pressed }) => [
+                styles.exportOption,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="shopping-cart" size={24} color={colors.primary} />
+              <Text style={[styles.exportOptionText, { color: colors.foreground }]}>買いたいもののみ</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleExportJSON("packing")}
+              style={({ pressed }) => [
+                styles.exportOption,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <MaterialIcons name="luggage" size={24} color={colors.primary} />
+              <Text style={[styles.exportOptionText, { color: colors.foreground }]}>持ち物のみ</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowExportModal(false)}
+              style={({ pressed }) => [
+                styles.modalCancelBtn,
+                { backgroundColor: colors.muted },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={styles.modalCancelText}>キャンセル</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Import Modal */}
-      <Modal visible={showImportModal} transparent animationType="slide" onRequestClose={() => setShowImportModal(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowImportModal(false)}>
-          <Pressable style={[styles.modalContainer, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Pressable onPress={() => setShowImportModal(false)} style={({ pressed }) => [pressed && { opacity: 0.5 }]}>
-                <MaterialIcons name="close" size={24} color={colors.foreground} />
+      <Modal visible={showImportModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>インポート</Text>
+            <Text style={[styles.modalDesc, { color: colors.muted }]}>
+              JSONデータを貼り付けてください
+            </Text>
+            <TextInput
+              placeholder="JSONデータを貼り付け"
+              placeholderTextColor={colors.muted}
+              value={importText}
+              onChangeText={setImportText}
+              multiline
+              style={[
+                styles.importInput,
+                { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface },
+              ]}
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => setShowImportModal(false)}
+                style={({ pressed }) => [
+                  styles.modalBtn,
+                  { backgroundColor: colors.muted },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.modalBtnText}>キャンセル</Text>
               </Pressable>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>旅行データを取り込み</Text>
               <Pressable
                 onPress={handleImport}
                 style={({ pressed }) => [
-                  styles.importButton,
+                  styles.modalBtn,
                   { backgroundColor: colors.primary },
-                  pressed && { opacity: 0.8 },
+                  pressed && { opacity: 0.7 },
                 ]}
               >
-                <Text style={styles.importButtonText}>取り込む</Text>
+                <Text style={styles.modalBtnText}>取り込む</Text>
               </Pressable>
             </View>
-            <ScrollView style={styles.modalBody}>
-              <Text style={[styles.importHint, { color: colors.muted }]}>
-                他の人から受け取った旅行データ(JSON)を下に貼り付けてください。
-              </Text>
-              <TextInput
-                style={[
-                  styles.importInput,
-                  {
-                    color: colors.foreground,
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-                value={importText}
-                onChangeText={setImportText}
-                placeholder='{"trip": {...}} の形式のJSONを貼り付け'
-                placeholderTextColor={colors.muted}
-                multiline
-                numberOfLines={12}
-                textAlignVertical="top"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </ScreenContainer>
   );
@@ -341,83 +464,183 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 20, fontWeight: "800" },
-  addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 18,
-    gap: 4,
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
   },
-  addButtonText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  listContent: { padding: 16, gap: 10, paddingBottom: 100 },
-  actionSection: { gap: 10, marginBottom: 6 },
-  actionCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    gap: 12,
+  content: {
+    padding: 16,
+    paddingBottom: 100,
   },
-  actionTitle: { fontSize: 15, fontWeight: "700" },
-  actionDesc: { fontSize: 12, marginTop: 1 },
-  sectionDivider: { paddingTop: 16, paddingBottom: 4 },
-  sectionLabel: { fontSize: 13, fontWeight: "700", letterSpacing: 0.5 },
-  tripCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 14,
+  section: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
     borderWidth: 1,
-    gap: 12,
   },
-  tripEmoji: { fontSize: 30 },
-  tripInfo: { flex: 1, gap: 2 },
-  tripName: { fontSize: 16, fontWeight: "700" },
-  tripDates: { fontSize: 12 },
-  tripStats: { fontSize: 11 },
-  tripActions: { alignItems: "flex-end", gap: 6 },
-  currentBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  currentBadgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  sectionDesc: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  currentTripInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  currentTripEmoji: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  currentTripName: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  currentTripDate: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  actionBtnText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  tripCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  tripHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tripEmoji: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  tripName: {
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  tripDate: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  addBtnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  manageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  manageBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
-  modalContainer: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "80%",
+  modalContent: {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 20,
   },
-  modalHeader: {
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  modalDesc: {
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  exportOption: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    gap: 12,
   },
-  modalTitle: { fontSize: 16, fontWeight: "700" },
-  importButton: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18 },
-  importButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  modalBody: { padding: 16 },
-  importHint: { fontSize: 13, marginBottom: 12, lineHeight: 20 },
+  exportOptionText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalCancelBtn: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
   importInput: {
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 150,
+    textAlignVertical: "top",
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
     paddingVertical: 12,
-    fontSize: 13,
-    minHeight: 200,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  modalBtnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

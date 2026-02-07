@@ -1,0 +1,536 @@
+import { useState, useMemo, useCallback } from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  TextInput,
+  StyleSheet,
+  Alert,
+  Linking,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
+import { useAppStore } from "@/lib/store";
+import { LinkItem } from "@/data/types";
+import { EVERYONE_MEMBER } from "@/data/members";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+
+const CATEGORIES = [
+  { id: "restaurant", label: "レストラン", emoji: "🍽️" },
+  { id: "hotel", label: "ホテル", emoji: "🏨" },
+  { id: "shopping", label: "ショッピング", emoji: "🛍️" },
+  { id: "sightseeing", label: "観光", emoji: "📸" },
+  { id: "other", label: "その他", emoji: "📌" },
+];
+
+export default function LinksScreen() {
+  const colors = useColors();
+  const { currentTrip, addLinkItem, deleteLinkItem } = useAppStore();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newCategory, setNewCategory] = useState("other");
+  const [newUrl, setNewUrl] = useState("");
+  const [newNote, setNewNote] = useState("");
+  const [newMember, setNewMember] = useState("everyone");
+  const [filterMember, setFilterMember] = useState("all");
+
+  const members = currentTrip?.members ?? [];
+  const linkItems = currentTrip?.linkItems ?? [];
+
+  const allMemberOptions = useMemo(
+    () => [{ id: "all", name: "全員", emoji: "🔗", color: "#666" }, EVERYONE_MEMBER, ...members],
+    [members]
+  );
+  const assignMemberOptions = useMemo(() => [EVERYONE_MEMBER, ...members], [members]);
+
+  const filteredItems = useMemo(() => {
+    if (filterMember === "all") return linkItems;
+    return linkItems.filter((i) => {
+      const mid = i.memberId ?? "everyone";
+      return mid === filterMember || mid === "everyone";
+    });
+  }, [linkItems, filterMember]);
+
+  function handleAdd() {
+    if (!newTitle.trim()) {
+      Alert.alert("エラー", "タイトルを入力してください");
+      return;
+    }
+    if (!newUrl.trim()) {
+      Alert.alert("エラー", "URLを入力してください");
+      return;
+    }
+    addLinkItem({
+      title: newTitle.trim(),
+      category: newCategory,
+      url: newUrl.trim(),
+      note: newNote.trim() || undefined,
+      memberId: newMember,
+    });
+    setNewTitle("");
+    setNewUrl("");
+    setNewNote("");
+    setShowAddForm(false);
+  }
+
+  function handleDelete(item: LinkItem) {
+    Alert.alert("削除", `「${item.title}」を削除しますか？`, [
+      { text: "キャンセル", style: "cancel" },
+      { text: "削除", style: "destructive", onPress: () => deleteLinkItem(item.id) },
+    ]);
+  }
+
+  function getMemberDisplay(memberId?: string) {
+    if (!memberId || memberId === "everyone") return { emoji: "🌈", name: "全員" };
+    const m = members.find((mem) => mem.id === memberId);
+    return m ? { emoji: m.emoji, name: m.name } : { emoji: "👤", name: "不明" };
+  }
+
+  function getCategoryEmoji(category?: string) {
+    return CATEGORIES.find((c) => c.id === category)?.emoji ?? "📌";
+  }
+
+  const renderItem = useCallback(
+    ({ item }: { item: LinkItem }) => {
+      const memberInfo = getMemberDisplay(item.memberId);
+      return (
+        <View
+          style={[
+            styles.itemCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.itemHeader}>
+            <Text style={styles.categoryEmoji}>{getCategoryEmoji(item.category)}</Text>
+            <Text style={[styles.itemTitle, { color: colors.foreground }]}>{item.title}</Text>
+          </View>
+          {item.note && <Text style={[styles.itemNote, { color: colors.muted }]}>{item.note}</Text>}
+          <View style={styles.itemFooter}>
+            <Text style={[styles.memberBadge, { color: colors.muted }]}>
+              {memberInfo.emoji} {memberInfo.name}
+            </Text>
+            <View style={styles.actions}>
+              <Pressable
+                onPress={() => Linking.openURL(item.url)}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="open-in-new" size={16} color="#fff" />
+                <Text style={styles.actionBtnText}>開く</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleDelete(item)}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  { backgroundColor: colors.error },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="delete" size={16} color="#fff" />
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      );
+    },
+    [colors, members]
+  );
+
+  return (
+    <ScreenContainer>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={100}
+      >
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.foreground }]}>🔗 リンク集</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>
+            {linkItems.length}件のリンク
+          </Text>
+        </View>
+
+        {/* Member Filter */}
+        <View style={styles.filterContainer}>
+          <FlatList
+            horizontal
+            data={allMemberOptions}
+            keyExtractor={(m) => m.id}
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item: m }) => (
+              <Pressable
+                onPress={() => setFilterMember(m.id)}
+                style={({ pressed }) => [
+                  styles.filterChip,
+                  {
+                    backgroundColor: filterMember === m.id ? colors.primary : colors.surface,
+                    borderColor: colors.border,
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.filterEmoji}>{m.emoji}</Text>
+                <Text
+                  style={[
+                    styles.filterLabel,
+                    { color: filterMember === m.id ? "#fff" : colors.foreground },
+                  ]}
+                >
+                  {m.name}
+                </Text>
+                {filterMember !== "all" && (
+                  <Text
+                    style={[
+                      styles.filterCount,
+                      { color: filterMember === m.id ? "#fff" : colors.muted },
+                    ]}
+                  >
+                    {filterMember === "all"
+                      ? linkItems.length
+                      : linkItems.filter((i) => {
+                          const mid = i.memberId ?? "everyone";
+                          return mid === m.id || mid === "everyone";
+                        }).length}
+                  </Text>
+                )}
+              </Pressable>
+            )}
+          />
+        </View>
+
+        {/* Add Form */}
+        {showAddForm && (
+          <View style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <TextInput
+              placeholder="タイトル"
+              placeholderTextColor={colors.muted}
+              value={newTitle}
+              onChangeText={setNewTitle}
+              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+            />
+            <View style={styles.categoryRow}>
+              {CATEGORIES.map((cat) => (
+                <Pressable
+                  key={cat.id}
+                  onPress={() => setNewCategory(cat.id)}
+                  style={({ pressed }) => [
+                    styles.categoryChip,
+                    {
+                      backgroundColor: newCategory === cat.id ? colors.primary : colors.background,
+                      borderColor: colors.border,
+                    },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.categoryChipEmoji}>{cat.emoji}</Text>
+                  <Text
+                    style={[
+                      styles.categoryChipLabel,
+                      { color: newCategory === cat.id ? "#fff" : colors.foreground },
+                    ]}
+                  >
+                    {cat.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <TextInput
+              placeholder="URL"
+              placeholderTextColor={colors.muted}
+              value={newUrl}
+              onChangeText={setNewUrl}
+              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+            <TextInput
+              placeholder="メモ（任意）"
+              placeholderTextColor={colors.muted}
+              value={newNote}
+              onChangeText={setNewNote}
+              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+              multiline
+            />
+            <View style={styles.memberRow}>
+              {assignMemberOptions.map((m) => (
+                <Pressable
+                  key={m.id}
+                  onPress={() => setNewMember(m.id)}
+                  style={({ pressed }) => [
+                    styles.memberChip,
+                    {
+                      backgroundColor: newMember === m.id ? colors.primary : colors.background,
+                      borderColor: colors.border,
+                    },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.memberChipEmoji}>{m.emoji}</Text>
+                  <Text
+                    style={[
+                      styles.memberChipLabel,
+                      { color: newMember === m.id ? "#fff" : colors.foreground },
+                    ]}
+                  >
+                    {m.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={styles.formActions}>
+              <Pressable
+                onPress={() => setShowAddForm(false)}
+                style={({ pressed }) => [
+                  styles.formBtn,
+                  { backgroundColor: colors.muted },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.formBtnText}>キャンセル</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleAdd}
+                style={({ pressed }) => [
+                  styles.formBtn,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.formBtnText}>追加</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {/* List */}
+        <FlatList
+          data={filteredItems}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: colors.muted }]}>
+                リンクがありません
+              </Text>
+            </View>
+          }
+        />
+
+        {/* Add Button */}
+        {!showAddForm && (
+          <Pressable
+            onPress={() => setShowAddForm(true)}
+            style={({ pressed }) => [
+              styles.fab,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
+            ]}
+          >
+            <MaterialIcons name="add" size={28} color="#fff" />
+          </Pressable>
+        )}
+      </KeyboardAvoidingView>
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  filterContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  filterEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  filterCount: {
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  addForm: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  categoryRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 12,
+    gap: 8,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  categoryChipEmoji: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  categoryChipLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  memberRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 12,
+    gap: 8,
+  },
+  memberChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  memberChipEmoji: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  memberChipLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  formActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  formBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  formBtnText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  itemCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  itemHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  categoryEmoji: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  itemTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    flex: 1,
+  },
+  itemNote: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  itemFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  memberBadge: {
+    fontSize: 13,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  actionBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+});

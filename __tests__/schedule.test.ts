@@ -3,7 +3,7 @@ import { SCHEDULE } from "../data/schedule";
 import { MEMBERS, getMemberById, getMemberColor, EVERYONE_MEMBER } from "../data/members";
 import { DAYS } from "../data/days";
 import { generateDays } from "../lib/store";
-import type { ScheduleEvent, Member, DayInfo, PackingItem, Trip, EventLink, MapInfo, WishlistItem, ShoppingItem } from "../data/types";
+import type { ScheduleEvent, Member, DayInfo, PackingItem, Trip, EventLink, MapInfo, LinkItem, ShoppingItem } from "../data/types";
 
 // Pure data/logic tests (no React Native imports)
 
@@ -58,7 +58,7 @@ function makeTripBase(overrides: Partial<Trip> = {}): Trip {
     events: [],
     members: [],
     packingItems: [],
-    wishlistItems: [],
+    linkItems: [],
     shoppingItems: [],
     createdAt: "2026-01-01T00:00:00Z",
     updatedAt: "2026-01-01T00:00:00Z",
@@ -274,10 +274,10 @@ describe("Type Structures", () => {
     expect(item.memberId).toBe("shohei");
   });
 
-  it("Trip should contain all sub-collections including wishlist and shopping", () => {
+  it("Trip should contain all sub-collections including link and shopping", () => {
     const trip = makeTripBase();
     expect(trip.packingItems).toEqual([]);
-    expect(trip.wishlistItems).toEqual([]);
+    expect(trip.linkItems).toEqual([]);
     expect(trip.shoppingItems).toEqual([]);
     expect(trip.members).toEqual([]);
     expect(trip.days).toEqual([]);
@@ -486,34 +486,33 @@ describe("Packing Items", () => {
   });
 });
 
-// ---- Wishlist Tests ----
-describe("Wishlist Items", () => {
-  it("should create a wishlist item", () => {
-    const item: WishlistItem = {
-      id: "w1",
-      name: "景福宮",
-      location: "ソウル",
-      mapInfo: { type: "naver", query: "경복궁" },
-      note: "朝早く行くと空いてる",
-      visited: false,
+// ---- // ---- Link Items Tests ----
+describe("Link Items", () => {
+  it("should create a link item", () => {
+    const item: LinkItem = {
+      id: "l1",
+      title: "明洞グルメガイド",
+      category: "restaurant",
+      url: "https://example.com/myeongdong",
+      note: "おすすめのレストラン情報",
       memberId: "everyone",
     };
-    expect(item.name).toBe("景福宮");
-    expect(item.visited).toBe(false);
-    expect(item.mapInfo?.type).toBe("naver");
+    expect(item.title).toBe("明洞グルメガイド");
+    expect(item.url).toBe("https://example.com/myeongdong");
+    expect(item.category).toBe("restaurant");
   });
 
-  it("should toggle visited state", () => {
-    const item: WishlistItem = { id: "w1", name: "明洞", visited: false };
-    const toggled = { ...item, visited: !item.visited };
-    expect(toggled.visited).toBe(true);
+  it("should have required fields", () => {
+    const item: LinkItem = { id: "l1", title: "ホテル情報", url: "https://hotel.com" };
+    expect(item.title).toBeTruthy();
+    expect(item.url).toBeTruthy();
   });
 
   it("should filter by member", () => {
-    const items: WishlistItem[] = [
-      { id: "w1", name: "明洞", visited: false, memberId: "everyone" },
-      { id: "w2", name: "カロスキル", visited: false, memberId: "nanako" },
-      { id: "w3", name: "DDP", visited: false, memberId: "shohei" },
+    const items: LinkItem[] = [
+      { id: "l1", title: "明洞グルメ", url: "https://example.com/1", memberId: "everyone" },
+      { id: "l2", title: "カロスキルカフェ", url: "https://example.com/2", memberId: "nanako" },
+      { id: "l3", title: "DDP情報", url: "https://example.com/3", memberId: "shohei" },
     ];
     const nanakoItems = items.filter((i) => i.memberId === "nanako" || i.memberId === "everyone");
     expect(nanakoItems.length).toBe(2);
@@ -564,7 +563,7 @@ describe("Trip Management", () => {
     });
     expect(trip.days.length).toBe(5);
     expect(trip.name).toBe("テスト旅行");
-    expect(trip.wishlistItems).toEqual([]);
+    expect(trip.linkItems).toEqual([]);
     expect(trip.shoppingItems).toEqual([]);
   });
 
@@ -628,7 +627,7 @@ describe("Trip Management", () => {
       events: [{ id: "e1", dayIndex: 0, startTime: "10:00", endTime: "11:00", title: "道頓堀", members: ["everyone"] }],
       members: [{ id: "m1", name: "太郎", emoji: "👨", color: "#FF0000" }],
       packingItems: [],
-      wishlistItems: [{ id: "w1", name: "大阪城", visited: false }],
+      linkItems: [{ id: "l1", title: "大阪城情報", url: "https://osakacastle.com" }],
       shoppingItems: [{ id: "s1", name: "たこ焼き", quantity: 1, bought: false }],
     };
     // Simulate import: create new trip with new IDs
@@ -641,12 +640,12 @@ describe("Trip Management", () => {
       days: importData.days,
       events: importData.events,
       members: importData.members,
-      wishlistItems: importData.wishlistItems as WishlistItem[],
+      linkItems: importData.linkItems as LinkItem[],
       shoppingItems: importData.shoppingItems as ShoppingItem[],
     });
     expect(imported.name).toBe("大阪旅行");
     expect(imported.events.length).toBe(1);
-    expect(imported.wishlistItems.length).toBe(1);
+    expect(imported.linkItems.length).toBe(1);
     expect(imported.shoppingItems.length).toBe(1);
   });
 });

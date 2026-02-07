@@ -54,16 +54,6 @@ export interface PackingItem {
   memberId?: MemberId; // "everyone" or specific member id
 }
 
-export interface WishlistItem {
-  id: string;
-  name: string;
-  location?: string;
-  mapInfo?: MapInfo;
-  note?: string;
-  visited: boolean;
-  memberId?: MemberId;
-}
-
 export interface ShoppingItem {
   id: string;
   name: string;
@@ -71,6 +61,15 @@ export interface ShoppingItem {
   price?: string;
   note?: string;
   bought: boolean;
+  memberId?: MemberId;
+}
+
+export interface LinkItem {
+  id: string;
+  title: string;
+  category?: string; // "restaurant", "hotel", "shopping", "sightseeing", "other"
+  url: string;
+  note?: string;
   memberId?: MemberId;
 }
 
@@ -84,7 +83,7 @@ export interface Trip {
   events: ScheduleEvent[];
   members: Member[];
   packingItems: PackingItem[];
-  wishlistItems: WishlistItem[];
+  linkItems: LinkItem[];
   shoppingItems: ShoppingItem[];
   createdAt: string;
   updatedAt: string;

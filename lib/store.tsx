@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { ScheduleEvent, Member, MemberId, Trip, DayInfo, PackingItem, EventLink, MapInfo, WishlistItem, ShoppingItem } from "@/data/types";
+import { ScheduleEvent, Member, MemberId, Trip, DayInfo, PackingItem, EventLink, MapInfo, LinkItem, ShoppingItem } from "@/data/types";
 import { SCHEDULE } from "@/data/schedule";
 import { MEMBERS as DEFAULT_MEMBERS } from "@/data/members";
 import { DAYS } from "@/data/days";
@@ -56,7 +56,7 @@ function ensureTripFields(trip: any): Trip {
   return {
     ...trip,
     packingItems: trip.packingItems ?? [],
-    wishlistItems: trip.wishlistItems ?? [],
+    linkItems: trip.linkItems ?? [],
     shoppingItems: trip.shoppingItems ?? [],
   };
 }
@@ -89,10 +89,10 @@ type AppAction =
   | { type: "UPDATE_PACKING_ITEM"; tripId: string; item: PackingItem }
   | { type: "DELETE_PACKING_ITEM"; tripId: string; itemId: string }
   | { type: "TOGGLE_PACKING_ITEM"; tripId: string; itemId: string }
-  | { type: "ADD_WISHLIST_ITEM"; tripId: string; item: WishlistItem }
-  | { type: "UPDATE_WISHLIST_ITEM"; tripId: string; item: WishlistItem }
-  | { type: "DELETE_WISHLIST_ITEM"; tripId: string; itemId: string }
-  | { type: "TOGGLE_WISHLIST_ITEM"; tripId: string; itemId: string }
+  | { type: "ADD_LINK_ITEM"; tripId: string; item: LinkItem }
+  | { type: "UPDATE_LINK_ITEM"; tripId: string; item: LinkItem }
+  | { type: "DELETE_LINK_ITEM"; tripId: string; itemId: string }
+  | { type: "TOGGLE_LINK_ITEM"; tripId: string; itemId: string }
   | { type: "ADD_SHOPPING_ITEM"; tripId: string; item: ShoppingItem }
   | { type: "UPDATE_SHOPPING_ITEM"; tripId: string; item: ShoppingItem }
   | { type: "DELETE_SHOPPING_ITEM"; tripId: string; itemId: string }
@@ -201,29 +201,25 @@ function appReducer(state: AppState, action: AppAction): AppState {
           i.id === action.itemId ? { ...i, checked: !i.checked } : i
         ),
       }));
-    // Wishlist
-    case "ADD_WISHLIST_ITEM":
+    // Link
+    case "ADD_LINK_ITEM":
       return updateTripInState(state, action.tripId, (t) => ({
         ...t,
-        wishlistItems: [...t.wishlistItems, action.item],
+        linkItems: [...t.linkItems, action.item],
       }));
-    case "UPDATE_WISHLIST_ITEM":
+    case "UPDATE_LINK_ITEM":
       return updateTripInState(state, action.tripId, (t) => ({
         ...t,
-        wishlistItems: t.wishlistItems.map((i) => (i.id === action.item.id ? action.item : i)),
+        linkItems: t.linkItems.map((i) => (i.id === action.item.id ? action.item : i)),
       }));
-    case "DELETE_WISHLIST_ITEM":
+    case "DELETE_LINK_ITEM":
       return updateTripInState(state, action.tripId, (t) => ({
         ...t,
-        wishlistItems: t.wishlistItems.filter((i) => i.id !== action.itemId),
+        linkItems: t.linkItems.filter((i) => i.id !== action.itemId),
       }));
-    case "TOGGLE_WISHLIST_ITEM":
-      return updateTripInState(state, action.tripId, (t) => ({
-        ...t,
-        wishlistItems: t.wishlistItems.map((i) =>
-          i.id === action.itemId ? { ...i, visited: !i.visited } : i
-        ),
-      }));
+    case "TOGGLE_LINK_ITEM":
+      // LinkItem does not have checked field, no-op
+      return state;
     // Shopping
     case "ADD_SHOPPING_ITEM":
       return updateTripInState(state, action.tripId, (t) => ({
@@ -274,10 +270,10 @@ interface AppContextType {
   updatePackingItem: (item: PackingItem) => void;
   deletePackingItem: (itemId: string) => void;
   togglePackingItem: (itemId: string) => void;
-  addWishlistItem: (item: Omit<WishlistItem, "id">) => void;
-  updateWishlistItem: (item: WishlistItem) => void;
-  deleteWishlistItem: (itemId: string) => void;
-  toggleWishlistItem: (itemId: string) => void;
+  addLinkItem: (item: Omit<LinkItem, "id">) => void;
+  updateLinkItem: (item: LinkItem) => void;
+  deleteLinkItem: (itemId: string) => void;
+  toggleLinkItem: (itemId: string) => void;
   addShoppingItem: (item: Omit<ShoppingItem, "id">) => void;
   updateShoppingItem: (item: ShoppingItem) => void;
   deleteShoppingItem: (itemId: string) => void;
@@ -338,7 +334,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           events: migrateOldData(events),
           members,
           packingItems: [],
-          wishlistItems: [],
+          linkItems: [],
           shoppingItems: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -357,7 +353,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         events: migrateOldData(SCHEDULE),
         members: DEFAULT_MEMBERS,
         packingItems: [],
-        wishlistItems: [],
+        linkItems: [],
         shoppingItems: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -388,7 +384,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       events: [],
       members: [],
       packingItems: [],
-      wishlistItems: [],
+      linkItems: [],
       shoppingItems: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -416,7 +412,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       events: (tripData.events ?? []).map((e: any) => ({ ...e, id: genId("evt") })),
       members: (tripData.members ?? []).map((m: any) => ({ ...m, id: genId("mbr") })),
       packingItems: (tripData.packingItems ?? []).map((i: any) => ({ ...i, id: genId("pkg") })),
-      wishlistItems: (tripData.wishlistItems ?? []).map((i: any) => ({ ...i, id: genId("wsh") })),
+      linkItems: (tripData.linkItems ?? []).map((i: any) => ({ ...i, id: genId("wsh") })),
       shoppingItems: (tripData.shoppingItems ?? []).map((i: any) => ({ ...i, id: genId("shp") })),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -504,22 +500,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: "TOGGLE_PACKING_ITEM", tripId, itemId });
   }, [tripId]);
 
-  // Wishlist
-  const addWishlistItem = useCallback((itemData: Omit<WishlistItem, "id">) => {
-    const item: WishlistItem = { ...itemData, id: genId("wsh") };
-    dispatch({ type: "ADD_WISHLIST_ITEM", tripId, item });
+  // Link
+  const addLinkItem = useCallback((itemData: Omit<LinkItem, "id">) => {
+    const item: LinkItem = { ...itemData, id: genId("wsh") };
+    dispatch({ type: "ADD_LINK_ITEM", tripId, item });
   }, [tripId]);
 
-  const updateWishlistItem = useCallback((item: WishlistItem) => {
-    dispatch({ type: "UPDATE_WISHLIST_ITEM", tripId, item });
+  const updateLinkItem = useCallback((item: LinkItem) => {
+    dispatch({ type: "UPDATE_LINK_ITEM", tripId, item });
   }, [tripId]);
 
-  const deleteWishlistItem = useCallback((itemId: string) => {
-    dispatch({ type: "DELETE_WISHLIST_ITEM", tripId, itemId });
+  const deleteLinkItem = useCallback((itemId: string) => {
+    dispatch({ type: "DELETE_LINK_ITEM", tripId, itemId });
   }, [tripId]);
 
-  const toggleWishlistItem = useCallback((itemId: string) => {
-    dispatch({ type: "TOGGLE_WISHLIST_ITEM", tripId, itemId });
+  const toggleLinkItem = useCallback((itemId: string) => {
+    dispatch({ type: "TOGGLE_LINK_ITEM", tripId, itemId });
   }, [tripId]);
 
   // Shopping
@@ -582,10 +578,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       text += "\n";
     }
 
-    if (currentTrip.wishlistItems.length > 0) {
-      text += "📍 行きたいところ\n";
-      for (const item of currentTrip.wishlistItems) {
-        text += `${item.visited ? "✅" : "⬜"} ${item.name}${item.location ? ` (${item.location})` : ""}\n`;
+    if (currentTrip.linkItems.length > 0) {
+      text += "🔗 リンク集\n";
+      for (const item of currentTrip.linkItems) {
+        text += `${item.title}${item.note ? ` - ${item.note}` : ""}\n${item.url}\n`;
       }
       text += "\n";
     }
@@ -622,17 +618,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updatePackingItem,
       deletePackingItem,
       togglePackingItem,
-      addWishlistItem,
-      updateWishlistItem,
-      deleteWishlistItem,
-      toggleWishlistItem,
+      addLinkItem,
+      updateLinkItem,
+      deleteLinkItem,
+      toggleLinkItem,
       addShoppingItem,
       updateShoppingItem,
       deleteShoppingItem,
       toggleShoppingItem,
       exportTripText,
     }),
-    [state, currentTrip, setCurrentTrip, addTrip, updateTripAction, deleteTrip, importTrip, addEvent, updateEvent, deleteEvent, reorderEvents, addDay, deleteDay, addMember, updateMember, deleteMember, addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem, addWishlistItem, updateWishlistItem, deleteWishlistItem, toggleWishlistItem, addShoppingItem, updateShoppingItem, deleteShoppingItem, toggleShoppingItem, exportTripText]
+    [state, currentTrip, setCurrentTrip, addTrip, updateTripAction, deleteTrip, importTrip, addEvent, updateEvent, deleteEvent, reorderEvents, addDay, deleteDay, addMember, updateMember, deleteMember, addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem, addLinkItem, updateLinkItem, deleteLinkItem, toggleLinkItem, addShoppingItem, updateShoppingItem, deleteShoppingItem, toggleShoppingItem, exportTripText]
   );
 
   return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
