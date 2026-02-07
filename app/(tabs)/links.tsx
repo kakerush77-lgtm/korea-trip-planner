@@ -10,6 +10,8 @@ import {
   Linking,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -41,6 +43,7 @@ export default function LinksScreen() {
   const [newNote, setNewNote] = useState("");
   const [newMember, setNewMember] = useState("everyone");
   const [filterMember, setFilterMember] = useState("all");
+  const [editingItem, setEditingItem] = useState<LinkItem | null>(null);
 
   const members = currentTrip?.members ?? [];
   const linkItems = currentTrip?.linkItems ?? [];
@@ -79,6 +82,16 @@ export default function LinksScreen() {
     setNewUrl("");
     setNewNote("");
     setShowAddForm(false);
+  }
+
+  function handleEdit(item: LinkItem) {
+    setEditingItem(item);
+    setNewTitle(item.title);
+    setNewCategory(item.category ?? "other");
+    setNewUrl(item.url);
+    setNewNote(item.note ?? "");
+    setNewMember(item.memberId ?? "everyone");
+    setShowAddForm(true);
   }
 
   function handleDelete(item: LinkItem) {
@@ -131,6 +144,16 @@ export default function LinksScreen() {
               >
                 <MaterialIcons name="open-in-new" size={16} color="#fff" />
                 <Text style={styles.actionBtnText}>開く</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => handleEdit(item)}
+                style={({ pressed }) => [
+                  styles.actionBtn,
+                  { backgroundColor: colors.muted },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="edit" size={16} color="#fff" />
               </Pressable>
               <Pressable
                 onPress={() => handleDelete(item)}
@@ -241,100 +264,6 @@ export default function LinksScreen() {
           />
         </View>
 
-        {/* Add Form */}
-        {showAddForm && (
-          <View style={[styles.addForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <TextInput
-              placeholder="タイトル"
-              placeholderTextColor={colors.muted}
-              value={newTitle}
-              onChangeText={setNewTitle}
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-            />
-            <Pressable
-              onPress={() => setShowCategoryPicker(true)}
-              style={({ pressed }) => [
-                styles.categorySelector,
-                { backgroundColor: colors.background, borderColor: colors.border },
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <Text style={styles.categorySelectorIcon}>
-                {CATEGORIES.find((c) => c.value === newCategory)?.icon ?? "📌"}
-              </Text>
-              <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
-                {CATEGORIES.find((c) => c.value === newCategory)?.label ?? "その他"}
-              </Text>
-              <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
-            </Pressable>
-            <TextInput
-              placeholder="URL"
-              placeholderTextColor={colors.muted}
-              value={newUrl}
-              onChangeText={setNewUrl}
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-            <TextInput
-              placeholder="メモ（任意）"
-              placeholderTextColor={colors.muted}
-              value={newNote}
-              onChangeText={setNewNote}
-              style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
-              multiline
-            />
-            <View style={styles.memberRow}>
-              {assignMemberOptions.map((m) => (
-                <Pressable
-                  key={m.id}
-                  onPress={() => setNewMember(m.id)}
-                  style={({ pressed }) => [
-                    styles.memberChip,
-                    {
-                      backgroundColor: newMember === m.id ? colors.primary : colors.background,
-                      borderColor: colors.border,
-                    },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={styles.memberChipEmoji}>{m.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.memberChipLabel,
-                      { color: newMember === m.id ? "#fff" : colors.foreground },
-                    ]}
-                  >
-                    {m.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.formActions}>
-              <Pressable
-                onPress={() => setShowAddForm(false)}
-                style={({ pressed }) => [
-                  styles.formBtn,
-                  { backgroundColor: colors.muted },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.formBtnText}>キャンセル</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleAdd}
-                style={({ pressed }) => [
-                  styles.formBtn,
-                  { backgroundColor: colors.primary },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.formBtnText}>追加</Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
-
         {/* List */}
         <FlatList
           data={filteredItems}
@@ -350,20 +279,121 @@ export default function LinksScreen() {
           }
         />
 
-        {/* Add Button */}
-        {!showAddForm && (
-          <Pressable
-            onPress={() => setShowAddForm(true)}
-            style={({ pressed }) => [
-              styles.fab,
-              { backgroundColor: colors.primary },
-              pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
-            ]}
-          >
-            <MaterialIcons name="add" size={28} color="#fff" />
-          </Pressable>
-        )}
+
       </KeyboardAvoidingView>
+
+      {/* Add/Edit Modal */}
+      <Modal visible={showAddForm} transparent animationType="slide">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowAddForm(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                {editingItem ? "リンクを編集" : "リンクを追加"}
+              </Text>
+              <Pressable onPress={() => setShowAddForm(false)}>
+                <MaterialIcons name="close" size={24} color={colors.muted} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <TextInput
+                placeholder="タイトル"
+                placeholderTextColor={colors.muted}
+                value={newTitle}
+                onChangeText={setNewTitle}
+                style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+              />
+              <Pressable
+                onPress={() => setShowCategoryPicker(true)}
+                style={({ pressed }) => [
+                  styles.categorySelector,
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.categorySelectorIcon}>
+                  {CATEGORIES.find((c) => c.value === newCategory)?.icon ?? "📌"}
+                </Text>
+                <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
+                  {CATEGORIES.find((c) => c.value === newCategory)?.label ?? "その他"}
+                </Text>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
+              </Pressable>
+              <TextInput
+                placeholder="URL"
+                placeholderTextColor={colors.muted}
+                value={newUrl}
+                onChangeText={setNewUrl}
+                style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface }]}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+              <TextInput
+                placeholder="メモ（任意）"
+                placeholderTextColor={colors.muted}
+                value={newNote}
+                onChangeText={setNewNote}
+                style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface, height: 80 }]}
+                multiline
+              />
+              <View style={styles.memberRow}>
+                {assignMemberOptions.map((m) => (
+                  <Pressable
+                    key={m.id}
+                    onPress={() => setNewMember(m.id)}
+                    style={({ pressed }) => [
+                      styles.memberChip,
+                      {
+                        backgroundColor: newMember === m.id ? colors.primary : colors.surface,
+                        borderColor: colors.border,
+                      },
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <Text style={styles.memberChipEmoji}>{m.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.memberChipLabel,
+                        { color: newMember === m.id ? "#fff" : colors.foreground },
+                      ]}
+                    >
+                      {m.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
+              <Pressable
+                onPress={() => {
+                  setShowAddForm(false);
+                  setEditingItem(null);
+                  setNewTitle("");
+                  setNewUrl("");
+                  setNewNote("");
+                  setNewMember("everyone");
+                }}
+                style={({ pressed }) => [
+                  styles.modalButton,
+                  { backgroundColor: colors.muted },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.modalButtonText}>キャンセル</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleAdd}
+                style={({ pressed }) => [
+                  styles.modalButton,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.modalButtonText}>{editingItem ? "更新" : "追加"}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
       <ScrollCategoryPicker
         visible={showCategoryPicker}
         onClose={() => setShowCategoryPicker(false)}
@@ -555,5 +585,56 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "90%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalFooter: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
