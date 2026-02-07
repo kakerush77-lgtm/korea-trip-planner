@@ -210,28 +210,35 @@ export default function ShoppingScreen() {
   return (
     <ScreenContainer>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => router.replace("/home" as any)}
+            style={({ pressed }) => [
+              styles.homeButton,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
+          </Pressable>
+          <Text style={styles.headerEmoji}>🛒️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]} numberOfLines={1}>買いたいもの</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
+              {boughtCount}/{shoppingItems.length}個 購入済み
+            </Text>
+          </View>
+        </View>
         <Pressable
-          onPress={() => router.replace("/home" as any)}
+          onPress={() => setShowAddForm(!showAddForm)}
           style={({ pressed }) => [
-            styles.homeButton,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            pressed && { opacity: 0.6 },
+            styles.addButton,
+            { backgroundColor: colors.primary },
+            pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
           ]}
         >
-          <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
+          <MaterialIcons name="add" size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
         </Pressable>
-        <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={1}>🛒️ 買いたいもの</Text>
-        <View style={styles.headerRight}>
-          <Text style={[styles.progress, { color: colors.muted }]}>
-            {boughtCount}/{shoppingItems.length}
-          </Text>
-          <Pressable
-            onPress={() => setShowAddForm(!showAddForm)}
-            style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
-          >
-            <MaterialIcons name={showAddForm ? "close" : "add"} size={24} color={colors.primary} />
-          </Pressable>
-        </View>
       </View>
 
       {/* Member Filter */}
@@ -421,20 +428,12 @@ export default function ShoppingScreen() {
 
 const styles = StyleSheet.create({
   header: UNIFIED_HEADER_STYLES.header,
+  headerLeft: UNIFIED_HEADER_STYLES.headerLeft,
   homeButton: UNIFIED_HEADER_STYLES.homeButton,
-  title: UNIFIED_HEADER_STYLES.headerTitle,
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  progress: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  addBtn: {
-    padding: 4,
-  },
+  headerEmoji: { fontSize: 28 },
+  headerTitle: UNIFIED_HEADER_STYLES.headerTitle,
+  headerSubtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
+  addButton: UNIFIED_HEADER_STYLES.addButton,
   filterRow: {
     paddingVertical: 12,
     borderBottomWidth: 1,

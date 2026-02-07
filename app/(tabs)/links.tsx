@@ -181,7 +181,7 @@ export default function LinksScreen() {
         keyboardVerticalOffset={100}
       >
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
             <Pressable
               onPress={() => router.replace("/home" as any)}
               style={({ pressed }) => [
@@ -192,9 +192,10 @@ export default function LinksScreen() {
             >
               <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
             </Pressable>
+            <Text style={styles.headerEmoji}>🔗</Text>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.title, { color: colors.foreground }]}>🔗 リンク集</Text>
-              <Text style={[styles.subtitle, { color: colors.muted }]}>
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>リンク集</Text>
+              <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
                 {linkItems.length}件のリンク
               </Text>
             </View>
@@ -204,10 +205,10 @@ export default function LinksScreen() {
             style={({ pressed }) => [
               styles.addButton,
               { backgroundColor: colors.primary },
-              pressed && { opacity: 0.8 },
+              pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
             ]}
           >
-            <MaterialIcons name={showAddForm ? "close" : "add"} size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
+            <MaterialIcons name="add" size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
           </Pressable>
         </View>
 
@@ -408,10 +409,11 @@ export default function LinksScreen() {
 
 const styles = StyleSheet.create({
   header: UNIFIED_HEADER_STYLES.header,
-  headerRow: UNIFIED_HEADER_STYLES.headerLeft,
+  headerLeft: UNIFIED_HEADER_STYLES.headerLeft,
   homeButton: UNIFIED_HEADER_STYLES.homeButton,
-  title: UNIFIED_HEADER_STYLES.headerTitle,
-  subtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
+  headerEmoji: { fontSize: 28 },
+  headerTitle: UNIFIED_HEADER_STYLES.headerTitle,
+  headerSubtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
   addButton: UNIFIED_HEADER_STYLES.addButton,
   filterContainer: {
     paddingVertical: 12,

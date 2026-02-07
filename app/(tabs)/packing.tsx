@@ -222,31 +222,34 @@ export default function PackingScreen() {
       >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable
-            onPress={() => router.replace("/home" as any)}
-            style={({ pressed }) => [
-              styles.homeButton,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-              pressed && { opacity: 0.6 },
-            ]}
-          >
-            <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>持ち物リスト</Text>
-            <Text style={[styles.headerSub, { color: colors.muted }]}>
-              {checkedCount}/{totalCount}個 準備完了
-            </Text>
+          <View style={styles.headerLeft}>
+            <Pressable
+              onPress={() => router.replace("/home" as any)}
+              style={({ pressed }) => [
+                styles.homeButton,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
+            </Pressable>
+            <Text style={styles.headerEmoji}>🧳</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>持ち物リスト</Text>
+              <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
+                {checkedCount}/{totalCount}個 準備完了
+              </Text>
+            </View>
           </View>
           <Pressable
             onPress={() => setShowAddForm(!showAddForm)}
             style={({ pressed }) => [
               styles.addButton,
               { backgroundColor: colors.primary },
-              pressed && { opacity: 0.8 },
+              pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
             ]}
           >
-            <MaterialIcons name={showAddForm ? "close" : "add"} size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
+            <MaterialIcons name="add" size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
           </Pressable>
         </View>
 
@@ -494,9 +497,11 @@ export default function PackingScreen() {
 
 const styles = StyleSheet.create({
   header: UNIFIED_HEADER_STYLES.header,
+  headerLeft: UNIFIED_HEADER_STYLES.headerLeft,
   homeButton: UNIFIED_HEADER_STYLES.homeButton,
+  headerEmoji: { fontSize: 28 },
   headerTitle: UNIFIED_HEADER_STYLES.headerTitle,
-  headerSub: UNIFIED_HEADER_STYLES.headerSubtitle,
+  headerSubtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
   addButton: UNIFIED_HEADER_STYLES.addButton,
   addButtonInner: {
     alignItems: "center",
