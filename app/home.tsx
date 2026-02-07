@@ -10,6 +10,7 @@ import {
   Alert,
   TextInput,
   Modal,
+  KeyboardAvoidingView,
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { router } from "expo-router";
@@ -391,8 +392,17 @@ export default function HomeScreen() {
 
       {/* Import Modal */}
       <Modal visible={showImportModal} transparent animationType="fade">
-        <Pressable style={styles.modalOverlay} onPress={() => { setShowImportModal(false); setImportText(""); }}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => { setShowImportModal(false); setImportText(""); }}>
+            <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
+              <ScrollView
+                contentContainerStyle={{ flexGrow: 1 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>インポート</Text>
             <Text style={[styles.modalDesc, { color: colors.muted }]}>
               JSONファイルを選択するか、テキストを貼り付けてください
@@ -464,30 +474,33 @@ export default function HomeScreen() {
                 { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface },
               ]}
             />
-            <View style={styles.modalActions}>
-              <Pressable
-                onPress={() => { setShowImportModal(false); setImportText(""); }}
-                style={({ pressed }) => [
-                  styles.modalBtn,
-                  { backgroundColor: colors.muted },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.modalBtnText}>キャンセル</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleImport}
-                style={({ pressed }) => [
-                  styles.modalBtn,
-                  { backgroundColor: colors.primary },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.modalBtnText}>取り込む</Text>
-              </Pressable>
-            </View>
+              </ScrollView>
+              <View style={styles.modalActionsImproved}>
+                <Pressable
+                  onPress={() => { setShowImportModal(false); setImportText(""); }}
+                  style={({ pressed }) => [
+                    styles.modalBtnImproved,
+                    { backgroundColor: colors.muted },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.modalBtnTextImproved}>キャンセル</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleImport}
+                  style={({ pressed }) => [
+                    styles.modalBtnImproved,
+                    styles.importBtnPrimary,
+                    { backgroundColor: colors.primary },
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text style={styles.modalBtnTextImproved}>取り込む</Text>
+                </Pressable>
+              </View>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </ScreenContainer>
   );
@@ -643,4 +656,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalBtnText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  modalActionsImproved: {
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+  },
+  modalBtnImproved: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 56,
+  },
+  modalBtnTextImproved: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  importBtnPrimary: {
+    flex: 1.5,
+  },
 });
