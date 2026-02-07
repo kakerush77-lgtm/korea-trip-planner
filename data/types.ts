@@ -1,4 +1,4 @@
-export type MemberId = "shohei" | "kayoko" | "nanako" | "chifumi" | "orito" | "everyone";
+export type MemberId = string;
 
 export interface Member {
   id: MemberId;

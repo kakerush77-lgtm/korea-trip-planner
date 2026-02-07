@@ -1,35 +1,42 @@
 import { useCallback, useMemo } from "react";
 import { FlatList, Text, View, Pressable, StyleSheet } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { MEMBERS } from "@/data/members";
-import { SCHEDULE } from "@/data/schedule";
-import { Member, ScheduleEvent } from "@/data/types";
+import { EVERYONE_MEMBER } from "@/data/members";
+import { Member } from "@/data/types";
 import { useColors } from "@/hooks/use-colors";
 import { useRouter } from "expo-router";
+import { useAppStore } from "@/lib/store";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-
-function getMemberEventCount(memberId: string): number {
-  return SCHEDULE.filter(
-    (e) => e.members.includes("everyone") || e.members.includes(memberId as any)
-  ).length;
-}
-
-function getMemberDays(memberId: string): string {
-  const days = new Set<number>();
-  SCHEDULE.forEach((e) => {
-    if (e.members.includes("everyone") || e.members.includes(memberId as any)) {
-      days.add(e.dayIndex);
-    }
-  });
-  return Array.from(days)
-    .sort()
-    .map((d) => `${d + 1}日目`)
-    .join(", ");
-}
 
 export default function MembersScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { state } = useAppStore();
+
+  const getMemberEventCount = useCallback(
+    (memberId: string): number => {
+      return state.events.filter(
+        (e) => e.members.includes("everyone") || e.members.includes(memberId as any)
+      ).length;
+    },
+    [state.events]
+  );
+
+  const getMemberDays = useCallback(
+    (memberId: string): string => {
+      const days = new Set<number>();
+      state.events.forEach((e) => {
+        if (e.members.includes("everyone") || e.members.includes(memberId as any)) {
+          days.add(e.dayIndex);
+        }
+      });
+      return Array.from(days)
+        .sort()
+        .map((d) => `${d + 1}日目`)
+        .join(", ");
+    },
+    [state.events]
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: Member }) => {
@@ -38,9 +45,7 @@ export default function MembersScreen() {
 
       return (
         <Pressable
-          onPress={() => {
-            router.push(`/?member=${item.id}` as any);
-          }}
+          onPress={() => router.push(`/member-form?memberId=${item.id}` as any)}
           style={({ pressed }) => [
             styles.card,
             {
@@ -59,7 +64,7 @@ export default function MembersScreen() {
           <View style={styles.info}>
             <Text style={[styles.name, { color: colors.foreground }]}>{item.name}</Text>
             <Text style={[styles.detail, { color: colors.muted }]}>
-              {eventCount}件の予定 · {activeDays}
+              {eventCount}件の予定 · {activeDays || "予定なし"}
             </Text>
           </View>
 
@@ -70,7 +75,7 @@ export default function MembersScreen() {
         </Pressable>
       );
     },
-    [colors, router]
+    [colors, router, getMemberEventCount, getMemberDays]
   );
 
   const keyExtractor = useCallback((item: Member) => item.id, []);
@@ -79,17 +84,29 @@ export default function MembersScreen() {
     <ScreenContainer>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Text style={styles.headerEmoji}>👥</Text>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>メンバー</Text>
-          <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
-            {MEMBERS.length}人の旅行メンバー
-          </Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerEmoji}>👥</Text>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.foreground }]}>メンバー</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
+              {state.members.length}人の旅行メンバー
+            </Text>
+          </View>
         </View>
+        <Pressable
+          onPress={() => router.push("/member-form" as any)}
+          style={({ pressed }) => [
+            styles.addButton,
+            { backgroundColor: colors.primary },
+            pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
+          ]}
+        >
+          <MaterialIcons name="person-add" size={20} color="#fff" />
+        </Pressable>
       </View>
 
       <FlatList
-        data={MEMBERS}
+        data={state.members}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
@@ -98,17 +115,37 @@ export default function MembersScreen() {
           <View style={styles.legendCard}>
             <Text style={[styles.legendTitle, { color: colors.foreground }]}>凡例</Text>
             <View style={styles.legendGrid}>
-              {MEMBERS.map((m) => (
+              {state.members.map((m) => (
                 <View key={m.id} style={styles.legendItem}>
                   <Text style={styles.legendEmoji}>{m.emoji}</Text>
                   <Text style={[styles.legendName, { color: colors.foreground }]}>{m.name}</Text>
                 </View>
               ))}
               <View style={styles.legendItem}>
-                <Text style={styles.legendEmoji}>🌈</Text>
+                <Text style={styles.legendEmoji}>{EVERYONE_MEMBER.emoji}</Text>
                 <Text style={[styles.legendName, { color: colors.foreground }]}>全員</Text>
               </View>
             </View>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyEmoji}>👤</Text>
+            <Text style={[styles.emptyText, { color: colors.muted }]}>
+              メンバーがいません
+            </Text>
+            <Pressable
+              onPress={() => router.push("/member-form" as any)}
+              style={({ pressed }) => [
+                styles.emptyAddButton,
+                { borderColor: colors.primary },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={[styles.emptyAddText, { color: colors.primary }]}>
+                メンバーを追加する
+              </Text>
+            </Pressable>
           </View>
         }
       />
@@ -120,10 +157,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 10,
     borderBottomWidth: 0.5,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   headerEmoji: {
     fontSize: 28,
@@ -137,6 +179,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     marginTop: 1,
+  },
+  addButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
   },
   listContent: {
     padding: 16,
@@ -203,5 +252,29 @@ const styles = StyleSheet.create({
   legendName: {
     fontSize: 13,
     fontWeight: "500",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyEmoji: {
+    fontSize: 40,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  emptyAddButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    marginTop: 4,
+  },
+  emptyAddText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

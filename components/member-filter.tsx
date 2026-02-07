@@ -1,21 +1,26 @@
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
-import { MemberId } from "@/data/types";
-import { MEMBERS, EVERYONE_MEMBER } from "@/data/members";
+import { MemberId, Member } from "@/data/types";
 import { useColors } from "@/hooks/use-colors";
 
-interface MemberFilterProps {
+export interface MemberFilterProps {
   selectedMembers: MemberId[];
   onToggleMember: (memberId: MemberId) => void;
   onSelectAll: () => void;
+  members: Member[];
 }
 
 export function MemberFilter({
   selectedMembers,
   onToggleMember,
   onSelectAll,
+  members,
 }: MemberFilterProps) {
   const colors = useColors();
   const isAllSelected = selectedMembers.length === 0;
+
+  // Separate "everyone" from individual members
+  const everyoneMember = members.find((m) => m.id === "everyone");
+  const individualMembers = members.filter((m) => m.id !== "everyone");
 
   return (
     <View style={styles.wrapper}>
@@ -35,7 +40,7 @@ export function MemberFilter({
             pressed && { opacity: 0.7 },
           ]}
         >
-          <Text style={styles.chipEmoji}>🌈</Text>
+          <Text style={styles.chipEmoji}>{everyoneMember?.emoji ?? "🌈"}</Text>
           <Text
             style={[
               styles.chipText,
@@ -47,7 +52,7 @@ export function MemberFilter({
         </Pressable>
 
         {/* Individual members */}
-        {MEMBERS.map((member) => {
+        {individualMembers.map((member) => {
           const isSelected = selectedMembers.includes(member.id);
           return (
             <Pressable

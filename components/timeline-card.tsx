@@ -1,51 +1,49 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { ScheduleEvent } from "@/data/types";
-import { MEMBERS, EVERYONE_MEMBER, getMemberById } from "@/data/members";
+import { ScheduleEvent, Member } from "@/data/types";
+import { EVERYONE_MEMBER } from "@/data/members";
 import { getCategoryIcon, formatTimeRange, openNaverMap } from "@/data/utils";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useColors } from "@/hooks/use-colors";
 
 interface TimelineCardProps {
   event: ScheduleEvent;
+  members?: Member[];
 }
 
-export function TimelineCard({ event }: TimelineCardProps) {
+export function TimelineCard({ event, members = [] }: TimelineCardProps) {
   const colors = useColors();
   const categoryIcon = getCategoryIcon(event.category);
   const timeRange = formatTimeRange(event.startTime, event.endTime);
   const hasNaverLink = !!event.naverQuery;
 
-  // Determine border color based on members
-  const borderColor = getBorderColor(event);
+  function getMemberById(id: string): Member | undefined {
+    if (id === "everyone") return EVERYONE_MEMBER;
+    return members.find((m) => m.id === id);
+  }
+
+  const borderColor = getBorderColor(event, members);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Left color bar */}
       <View style={[styles.colorBar, { backgroundColor: borderColor }]} />
-
       <View style={styles.content}>
-        {/* Time row */}
         <View style={styles.timeRow}>
           <MaterialIcons name="schedule" size={14} color={colors.muted} />
           <Text style={[styles.timeText, { color: colors.muted }]}>{timeRange}</Text>
           <Text style={styles.categoryIcon}>{categoryIcon}</Text>
         </View>
 
-        {/* Title */}
         <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={2}>
           {event.title}
         </Text>
 
-        {/* Note */}
         {event.note ? (
           <Text style={[styles.note, { color: colors.muted }]} numberOfLines={2}>
             {event.note}
           </Text>
         ) : null}
 
-        {/* Bottom row: members + location */}
         <View style={styles.bottomRow}>
-          {/* Member badges */}
           <View style={styles.memberRow}>
             {event.members.includes("everyone") ? (
               <View style={[styles.memberBadge, { backgroundColor: EVERYONE_MEMBER.color + "20" }]}>
@@ -53,7 +51,7 @@ export function TimelineCard({ event }: TimelineCardProps) {
                 <Text style={[styles.memberName, { color: EVERYONE_MEMBER.color }]}>全員</Text>
               </View>
             ) : (
-              event.members.map((memberId) => {
+              event.members.slice(0, 4).map((memberId) => {
                 const member = getMemberById(memberId);
                 if (!member) return null;
                 return (
@@ -66,12 +64,19 @@ export function TimelineCard({ event }: TimelineCardProps) {
                 );
               })
             )}
+            {!event.members.includes("everyone") && event.members.length > 4 && (
+              <Text style={[styles.moreMembers, { color: colors.muted }]}>
+                +{event.members.length - 4}
+              </Text>
+            )}
           </View>
 
-          {/* Naver Map button */}
           {hasNaverLink ? (
             <Pressable
-              onPress={() => openNaverMap(event.naverQuery!)}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                openNaverMap(event.naverQuery!);
+              }}
               style={({ pressed }) => [
                 styles.mapButton,
                 { backgroundColor: "#03C75A" + "18" },
@@ -88,17 +93,15 @@ export function TimelineCard({ event }: TimelineCardProps) {
   );
 }
 
-function getBorderColor(event: ScheduleEvent): string {
+function getBorderColor(event: ScheduleEvent, members: Member[]): string {
   if (event.members.includes("everyone")) {
     return "#1E88E5";
   }
-  if (event.members.length === 1) {
-    const member = getMemberById(event.members[0]);
+  if (event.members.length >= 1) {
+    const member = members.find((m) => m.id === event.members[0]);
     return member?.color ?? "#999";
   }
-  // Multiple members - use first member's color
-  const member = getMemberById(event.members[0]);
-  return member?.color ?? "#999";
+  return "#999";
 }
 
 const styles = StyleSheet.create({
@@ -166,6 +169,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   memberName: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  moreMembers: {
     fontSize: 11,
     fontWeight: "600",
   },
