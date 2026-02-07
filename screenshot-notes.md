@@ -1,10 +1,12 @@
-# Screenshot Review - CRUD Update
+# Screenshot Review - v3 (Full Feature Update)
 
 ## Preview (2026-02-07 latest)
-- Header: 韓国旅行 2026 with blue + button (add event) in top-right corner
-- Day tabs, member filter chips all working
-- Timeline cards with Naver Map buttons
-- Tab bar: スケジュール, メンバー
-- TypeScript: 0 errors, Tests: 30 passed
-- New features: event-form, event-detail, member-form screens added
-- AppProvider wrapping the app for state management
+- 4タブ表示: スケジュール、メンバー、持ち物、旅行管理
+- 韓国旅行2026のヘッダー表示
+- 日別タブ切り替え (1日目〜4日目)
+- メンバーフィルタチップ (全員、翔平、かよこ、ななこ、ちふみ)
+- タイムラインカード: 時間、タイトル、場所、メンバーバッジ、Naver Mapボタン
+- 並べ替えボタン (↑↓) がヘッダーに表示
+- +ボタンで予定追加
+- 全11件の予定が1日目に表示
+- TypeScript: 0 errors

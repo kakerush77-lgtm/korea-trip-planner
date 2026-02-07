@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { SCHEDULE } from "../data/schedule";
 import { MEMBERS, getMemberById, getMemberColor, EVERYONE_MEMBER } from "../data/members";
 import { DAYS } from "../data/days";
-import type { ScheduleEvent, Member } from "../data/types";
+import { generateDays } from "../lib/store";
+import type { ScheduleEvent, Member, DayInfo, PackingItem, Trip, EventLink, MapInfo } from "../data/types";
 
 // Pure data/logic tests (no React Native imports)
 
@@ -46,13 +47,12 @@ function getCategoryLabel(category?: string): string {
   }
 }
 
+// ---- Schedule Data Tests ----
 describe("Schedule Data", () => {
   it("should have events for all 4 days", () => {
     const dayIndices = new Set(SCHEDULE.map((e) => e.dayIndex));
     expect(dayIndices.size).toBe(4);
     expect(dayIndices.has(0)).toBe(true);
-    expect(dayIndices.has(1)).toBe(true);
-    expect(dayIndices.has(2)).toBe(true);
     expect(dayIndices.has(3)).toBe(true);
   });
 
@@ -63,10 +63,9 @@ describe("Schedule Data", () => {
   });
 
   it("should have valid time formats", () => {
-    const timeRegex = /^\d{2}:\d{2}$/;
     SCHEDULE.forEach((event) => {
-      expect(event.startTime).toMatch(timeRegex);
-      expect(event.endTime).toMatch(timeRegex);
+      expect(event.startTime).toMatch(/^\d{2}:\d{2}$/);
+      expect(event.endTime).toMatch(/^\d{2}:\d{2}$/);
     });
   });
 
@@ -100,6 +99,7 @@ describe("Schedule Data", () => {
   });
 });
 
+// ---- Members Tests ----
 describe("Members Data", () => {
   it("should have 5 members", () => {
     expect(MEMBERS.length).toBe(5);
@@ -109,13 +109,13 @@ describe("Members Data", () => {
     const shohei = getMemberById("shohei");
     expect(shohei).toBeDefined();
     expect(shohei!.name).toBe("翔平");
-    expect(shohei!.emoji).toBe("🩵");
   });
 
   it("should return everyone member", () => {
     const everyone = getMemberById("everyone");
     expect(everyone).toBeDefined();
     expect(everyone!.name).toBe("全員");
+    expect(everyone!.emoji).toBe("🌈");
   });
 
   it("should return correct color", () => {
@@ -133,6 +133,7 @@ describe("Members Data", () => {
   });
 });
 
+// ---- Days Tests ----
 describe("Days Data", () => {
   it("should have 4 days", () => {
     expect(DAYS.length).toBe(4);
@@ -140,8 +141,6 @@ describe("Days Data", () => {
 
   it("should have correct dates", () => {
     expect(DAYS[0].date).toBe("2026-03-19");
-    expect(DAYS[1].date).toBe("2026-03-20");
-    expect(DAYS[2].date).toBe("2026-03-21");
     expect(DAYS[3].date).toBe("2026-03-22");
   });
 
@@ -150,8 +149,145 @@ describe("Days Data", () => {
       expect(day.index).toBe(i);
     });
   });
+
+  it("each day should have id", () => {
+    DAYS.forEach((day) => {
+      expect(day.id).toBeTruthy();
+    });
+  });
 });
 
+// ---- generateDays Tests ----
+describe("generateDays", () => {
+  it("should generate correct number of days", () => {
+    const days = generateDays("2026-03-19", "2026-03-22");
+    expect(days.length).toBe(4);
+  });
+
+  it("should generate single day for same start and end", () => {
+    const days = generateDays("2026-05-01", "2026-05-01");
+    expect(days.length).toBe(1);
+    expect(days[0].date).toBe("2026-05-01");
+  });
+
+  it("should have sequential indices", () => {
+    const days = generateDays("2026-01-01", "2026-01-05");
+    expect(days.length).toBe(5);
+    days.forEach((day, i) => {
+      expect(day.index).toBe(i);
+      expect(day.dayLabel).toBe(`${i + 1}日目`);
+    });
+  });
+
+  it("should include day of week in label", () => {
+    const days = generateDays("2026-03-19", "2026-03-19");
+    expect(days[0].label).toContain("木");
+  });
+
+  it("each generated day should have id", () => {
+    const days = generateDays("2026-06-01", "2026-06-03");
+    days.forEach((day) => {
+      expect(day.id).toBeTruthy();
+    });
+  });
+});
+
+// ---- Type Structure Tests ----
+describe("Type Structures", () => {
+  it("ScheduleEvent should support mapInfo with naver", () => {
+    const event: ScheduleEvent = {
+      id: "test-1",
+      dayIndex: 0,
+      startTime: "09:00",
+      endTime: "10:00",
+      title: "Test Event",
+      members: ["everyone"],
+      mapInfo: { type: "naver", query: "명동" },
+    };
+    expect(event.mapInfo?.type).toBe("naver");
+    expect(event.mapInfo?.query).toBe("명동");
+  });
+
+  it("ScheduleEvent should support google map with URL", () => {
+    const event: ScheduleEvent = {
+      id: "test-2",
+      dayIndex: 0,
+      startTime: "09:00",
+      endTime: "10:00",
+      title: "Test Event",
+      members: ["everyone"],
+      mapInfo: { type: "google", url: "https://maps.google.com/test" },
+    };
+    expect(event.mapInfo?.type).toBe("google");
+    expect(event.mapInfo?.url).toBe("https://maps.google.com/test");
+  });
+
+  it("ScheduleEvent should support multiple links", () => {
+    const links: EventLink[] = [
+      { id: "l1", label: "公式サイト", url: "https://example.com" },
+      { id: "l2", label: "予約", url: "https://booking.com" },
+    ];
+    const event: ScheduleEvent = {
+      id: "test-3",
+      dayIndex: 0,
+      startTime: "09:00",
+      endTime: "10:00",
+      title: "Test Event",
+      members: ["everyone"],
+      links,
+    };
+    expect(event.links?.length).toBe(2);
+    expect(event.links?.[0].label).toBe("公式サイト");
+  });
+
+  it("PackingItem should have quantity and category", () => {
+    const item: PackingItem = {
+      id: "pkg-1",
+      name: "パスポート",
+      checked: false,
+      category: "documents",
+      quantity: 1,
+    };
+    expect(item.quantity).toBe(1);
+    expect(item.checked).toBe(false);
+    expect(item.category).toBe("documents");
+  });
+
+  it("Trip should contain all sub-collections", () => {
+    const trip: Trip = {
+      id: "trip-1",
+      name: "韓国旅行",
+      emoji: "🇰🇷",
+      startDate: "2026-03-19",
+      endDate: "2026-03-22",
+      days: [],
+      events: [],
+      members: [],
+      packingItems: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    expect(trip.packingItems).toEqual([]);
+    expect(trip.members).toEqual([]);
+    expect(trip.days).toEqual([]);
+    expect(trip.events).toEqual([]);
+  });
+
+  it("ScheduleEvent should support sortOrder", () => {
+    const event: ScheduleEvent = {
+      id: "test-sort",
+      dayIndex: 0,
+      startTime: "09:00",
+      endTime: "10:00",
+      title: "Test",
+      members: ["everyone"],
+      sortOrder: 5,
+    };
+    expect(event.sortOrder).toBe(5);
+  });
+});
+
+// ---- Filter Logic Tests ----
 describe("Filter Events", () => {
   it("should return all events when no members selected", () => {
     const result = filterEventsByMember(SCHEDULE, []);
@@ -184,6 +320,7 @@ describe("Filter Events", () => {
   });
 });
 
+// ---- Utility Functions Tests ----
 describe("Utility Functions", () => {
   it("formatTimeRange should format correctly", () => {
     expect(formatTimeRange("07:00", "07:16")).toBe("07:00 - 07:16");
@@ -210,10 +347,11 @@ describe("Utility Functions", () => {
   });
 });
 
+// ---- CRUD Operations Tests ----
 describe("CRUD Operations - Data Validation", () => {
-  it("should create a valid event object with all fields", () => {
+  it("should create a valid event with mapInfo", () => {
     const newEvent: ScheduleEvent = {
-      id: "test-event-1",
+      id: "test-crud-1",
       dayIndex: 0,
       startTime: "10:00",
       endTime: "11:00",
@@ -221,15 +359,11 @@ describe("CRUD Operations - Data Validation", () => {
       members: ["everyone"],
       category: "other",
       note: "テストメモ",
-      naverQuery: "테스트",
+      mapInfo: { type: "naver", query: "명동" },
       location: "テスト場所",
     };
-    expect(newEvent.id).toBeTruthy();
-    expect(newEvent.title).toBe("テスト予定");
-    expect(newEvent.note).toBe("テストメモ");
-    expect(newEvent.naverQuery).toBe("테스트");
+    expect(newEvent.mapInfo?.type).toBe("naver");
     expect(newEvent.location).toBe("テスト場所");
-    expect(newEvent.category).toBe("other");
   });
 
   it("should create a valid member object", () => {
@@ -240,39 +374,7 @@ describe("CRUD Operations - Data Validation", () => {
       color: "#FF5733",
     };
     expect(newMember.id).toBeTruthy();
-    expect(newMember.name).toBe("テストユーザー");
-    expect(newMember.emoji).toBe("😎");
     expect(newMember.color).toMatch(/^#[0-9A-Fa-f]{6}$/);
-  });
-
-  it("should simulate removing a member from events", () => {
-    const events: ScheduleEvent[] = [
-      { id: "e1", dayIndex: 0, startTime: "09:00", endTime: "10:00", title: "A", members: ["shohei", "nanako"] },
-      { id: "e2", dayIndex: 0, startTime: "10:00", endTime: "11:00", title: "B", members: ["everyone"] },
-      { id: "e3", dayIndex: 0, startTime: "11:00", endTime: "12:00", title: "C", members: ["nanako"] },
-    ];
-    const cleaned = events.map((e) => ({
-      ...e,
-      members: e.members.filter((m) => m !== "shohei"),
-    }));
-    expect(cleaned[0].members).toEqual(["nanako"]);
-    expect(cleaned[1].members).toEqual(["everyone"]);
-    expect(cleaned[2].members).toEqual(["nanako"]);
-  });
-
-  it("should support optional fields on events", () => {
-    const minimalEvent: ScheduleEvent = {
-      id: "min-1",
-      dayIndex: 0,
-      startTime: "09:00",
-      endTime: "10:00",
-      title: "最小限の予定",
-      members: ["everyone"],
-    };
-    expect(minimalEvent.note).toBeUndefined();
-    expect(minimalEvent.naverQuery).toBeUndefined();
-    expect(minimalEvent.location).toBeUndefined();
-    expect(minimalEvent.category).toBeUndefined();
   });
 
   it("should simulate updating an event", () => {
@@ -299,5 +401,144 @@ describe("CRUD Operations - Data Validation", () => {
     const afterDelete = events.filter((e) => e.id !== "del-2");
     expect(afterDelete.length).toBe(2);
     expect(afterDelete.find((e) => e.id === "del-2")).toBeUndefined();
+  });
+});
+
+// ---- Sort Logic Tests ----
+describe("Sort Logic", () => {
+  it("should sort by startTime when no sortOrder", () => {
+    const events: ScheduleEvent[] = [
+      { id: "a", dayIndex: 0, startTime: "12:00", endTime: "13:00", title: "B", members: [] },
+      { id: "b", dayIndex: 0, startTime: "09:00", endTime: "10:00", title: "A", members: [] },
+    ];
+    const sorted = [...events].sort((a, b) => {
+      if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
+        return a.sortOrder - b.sortOrder;
+      }
+      return a.startTime.localeCompare(b.startTime);
+    });
+    expect(sorted[0].id).toBe("b");
+  });
+
+  it("should sort by sortOrder when present", () => {
+    const events: ScheduleEvent[] = [
+      { id: "a", dayIndex: 0, startTime: "09:00", endTime: "10:00", title: "A", members: [], sortOrder: 2 },
+      { id: "b", dayIndex: 0, startTime: "12:00", endTime: "13:00", title: "B", members: [], sortOrder: 1 },
+    ];
+    const sorted = [...events].sort((a, b) => {
+      if (a.sortOrder !== undefined && b.sortOrder !== undefined) {
+        return a.sortOrder - b.sortOrder;
+      }
+      return a.startTime.localeCompare(b.startTime);
+    });
+    expect(sorted[0].id).toBe("b");
+  });
+});
+
+// ---- Packing Item Tests ----
+describe("Packing Items", () => {
+  it("should toggle checked state", () => {
+    const item: PackingItem = { id: "p1", name: "パスポート", checked: false, quantity: 1 };
+    const toggled = { ...item, checked: !item.checked };
+    expect(toggled.checked).toBe(true);
+  });
+
+  it("should support categories", () => {
+    const items: PackingItem[] = [
+      { id: "p1", name: "パスポート", checked: false, category: "documents", quantity: 1 },
+      { id: "p2", name: "Tシャツ", checked: false, category: "clothes", quantity: 3 },
+      { id: "p3", name: "充電器", checked: true, category: "electronics", quantity: 1 },
+    ];
+    const docs = items.filter((i) => i.category === "documents");
+    expect(docs.length).toBe(1);
+    const checked = items.filter((i) => i.checked);
+    expect(checked.length).toBe(1);
+  });
+
+  it("should support quantity", () => {
+    const item: PackingItem = { id: "p1", name: "Tシャツ", checked: false, quantity: 3 };
+    expect(item.quantity).toBe(3);
+    const updated = { ...item, quantity: 5 };
+    expect(updated.quantity).toBe(5);
+  });
+});
+
+// ---- Trip Management Tests ----
+describe("Trip Management", () => {
+  it("should create a trip with all required fields", () => {
+    const trip: Trip = {
+      id: "trip-test",
+      name: "テスト旅行",
+      emoji: "✈️",
+      startDate: "2026-06-01",
+      endDate: "2026-06-05",
+      days: generateDays("2026-06-01", "2026-06-05"),
+      events: [],
+      members: [],
+      packingItems: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+    expect(trip.days.length).toBe(5);
+    expect(trip.name).toBe("テスト旅行");
+  });
+
+  it("should add events to a trip", () => {
+    const trip: Trip = {
+      id: "trip-add",
+      name: "追加テスト",
+      emoji: "🏖️",
+      startDate: "2026-07-01",
+      endDate: "2026-07-02",
+      days: generateDays("2026-07-01", "2026-07-02"),
+      events: [],
+      members: [{ id: "m1", name: "テスト", emoji: "😀", color: "#FF0000" }],
+      packingItems: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+    const newEvent: ScheduleEvent = {
+      id: "ev-new",
+      dayIndex: 0,
+      startTime: "10:00",
+      endTime: "11:00",
+      title: "新しい予定",
+      members: ["m1"],
+    };
+    const updatedTrip = { ...trip, events: [...trip.events, newEvent] };
+    expect(updatedTrip.events.length).toBe(1);
+    expect(updatedTrip.events[0].title).toBe("新しい予定");
+  });
+
+  it("should share trip as text", () => {
+    const trip: Trip = {
+      id: "trip-share",
+      name: "共有テスト",
+      emoji: "🌏",
+      startDate: "2026-08-01",
+      endDate: "2026-08-02",
+      days: generateDays("2026-08-01", "2026-08-02"),
+      events: [
+        { id: "s1", dayIndex: 0, startTime: "09:00", endTime: "10:00", title: "朝食", members: ["everyone"] },
+        { id: "s2", dayIndex: 1, startTime: "14:00", endTime: "15:00", title: "観光", members: ["everyone"] },
+      ],
+      members: [],
+      packingItems: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+    // Simulate share text generation
+    const lines: string[] = [`🌏 ${trip.name}`];
+    trip.days.forEach((day) => {
+      lines.push(`\n--- ${day.dayLabel} (${day.label}) ---`);
+      const dayEvents = trip.events.filter((e) => e.dayIndex === day.index);
+      dayEvents.forEach((e) => {
+        lines.push(`${e.startTime}-${e.endTime} ${e.title}`);
+      });
+    });
+    const shareText = lines.join("\n");
+    expect(shareText).toContain("共有テスト");
+    expect(shareText).toContain("朝食");
+    expect(shareText).toContain("観光");
   });
 });

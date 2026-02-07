@@ -7,22 +7,62 @@ export interface Member {
   color: string;
 }
 
+export type MapType = "naver" | "google";
+
+export interface EventLink {
+  id: string;
+  label: string;
+  url: string;
+}
+
+export interface MapInfo {
+  type: MapType;
+  query?: string; // search query
+  url?: string; // direct URL
+}
+
 export interface ScheduleEvent {
   id: string;
-  dayIndex: number; // 0-3 (Day 1-4)
+  dayIndex: number;
   startTime: string; // "HH:mm"
   endTime: string; // "HH:mm"
   title: string;
   members: MemberId[];
   location?: string;
-  naverQuery?: string; // Naver Map search query (Korean)
+  naverQuery?: string; // legacy - kept for migration
+  mapInfo?: MapInfo;
+  links?: EventLink[];
   note?: string;
+  sortOrder?: number; // for manual ordering
   category?: "transport" | "food" | "shopping" | "beauty" | "sightseeing" | "activity" | "other";
 }
 
 export interface DayInfo {
+  id: string;
   index: number;
   date: string; // "2026-03-19"
   label: string; // "3/19(木)"
   dayLabel: string; // "1日目"
+}
+
+export interface PackingItem {
+  id: string;
+  name: string;
+  checked: boolean;
+  category?: string;
+  quantity: number;
+}
+
+export interface Trip {
+  id: string;
+  name: string;
+  emoji: string;
+  startDate: string; // "2026-03-19"
+  endDate: string; // "2026-03-22"
+  days: DayInfo[];
+  events: ScheduleEvent[];
+  members: Member[];
+  packingItems: PackingItem[];
+  createdAt: string;
+  updatedAt: string;
 }

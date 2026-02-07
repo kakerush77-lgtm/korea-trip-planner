@@ -92,6 +92,8 @@ export default function RootLayout() {
             <Stack.Screen name="event-form" options={{ presentation: "modal" }} />
             <Stack.Screen name="event-detail" options={{ presentation: "card" }} />
             <Stack.Screen name="member-form" options={{ presentation: "modal" }} />
+            <Stack.Screen name="trip-form" options={{ presentation: "modal" }} />
+            <Stack.Screen name="day-manage" options={{ presentation: "modal" }} />
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <StatusBar style="auto" />

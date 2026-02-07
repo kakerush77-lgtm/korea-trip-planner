@@ -14,8 +14,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
-import { DAYS } from "@/data/days";
-import { ScheduleEvent, MemberId } from "@/data/types";
+import { ScheduleEvent, MemberId, EventLink, MapInfo, MapType } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
@@ -29,20 +28,31 @@ const CATEGORIES = [
   { value: "other", label: "その他", icon: "📌" },
 ];
 
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+
+function genLinkId() {
+  return `lnk-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+}
+
 export default function EventFormScreen() {
   const colors = useColors();
   const router = useRouter();
   const params = useLocalSearchParams<{ eventId?: string; dayIndex?: string }>();
-  const { state, addEvent, updateEvent, deleteEvent } = useAppStore();
+  const { currentTrip, addEvent, updateEvent, deleteEvent } = useAppStore();
+
+  const days = currentTrip?.days ?? [];
+  const members = currentTrip?.members ?? [];
+  const events = currentTrip?.events ?? [];
 
   const isEditing = !!params.eventId;
-  const existingEvent = isEditing
-    ? state.events.find((e) => e.id === params.eventId)
-    : undefined;
+  const existingEvent = isEditing ? events.find((e) => e.id === params.eventId) : undefined;
 
   const [title, setTitle] = useState(existingEvent?.title ?? "");
-  const [startTime, setStartTime] = useState(existingEvent?.startTime ?? "09:00");
-  const [endTime, setEndTime] = useState(existingEvent?.endTime ?? "10:00");
+  const [startHour, setStartHour] = useState(existingEvent?.startTime?.split(":")[0] ?? "09");
+  const [startMin, setStartMin] = useState(existingEvent?.startTime?.split(":")[1] ?? "00");
+  const [endHour, setEndHour] = useState(existingEvent?.endTime?.split(":")[0] ?? "10");
+  const [endMin, setEndMin] = useState(existingEvent?.endTime?.split(":")[1] ?? "00");
   const [dayIndex, setDayIndex] = useState(
     existingEvent?.dayIndex ?? (params.dayIndex ? parseInt(params.dayIndex) : 0)
   );
@@ -51,12 +61,13 @@ export default function EventFormScreen() {
     existingEvent?.members ?? ["everyone"]
   );
   const [location, setLocation] = useState(existingEvent?.location ?? "");
-  const [naverQuery, setNaverQuery] = useState(existingEvent?.naverQuery ?? "");
+  const [mapType, setMapType] = useState<MapType>(existingEvent?.mapInfo?.type ?? "naver");
+  const [mapQuery, setMapQuery] = useState(existingEvent?.mapInfo?.query ?? existingEvent?.naverQuery ?? "");
+  const [mapUrl, setMapUrl] = useState(existingEvent?.mapInfo?.url ?? "");
+  const [links, setLinks] = useState<EventLink[]>(existingEvent?.links ?? []);
   const [note, setNote] = useState(existingEvent?.note ?? "");
 
-  const allMembers = useMemo(() => {
-    return [EVERYONE_MEMBER, ...state.members];
-  }, [state.members]);
+  const allMembers = useMemo(() => [EVERYONE_MEMBER, ...members], [members]);
 
   function toggleMember(memberId: MemberId) {
     if (memberId === "everyone") {
@@ -73,11 +84,33 @@ export default function EventFormScreen() {
     });
   }
 
+  function addLink() {
+    setLinks((prev) => [...prev, { id: genLinkId(), label: "", url: "" }]);
+  }
+
+  function updateLink(id: string, field: "label" | "url", value: string) {
+    setLinks((prev) => prev.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
+  }
+
+  function removeLink(id: string) {
+    setLinks((prev) => prev.filter((l) => l.id !== id));
+  }
+
   function handleSave() {
     if (!title.trim()) {
       Alert.alert("エラー", "タイトルを入力してください");
       return;
     }
+
+    const startTime = `${startHour}:${startMin}`;
+    const endTime = `${endHour}:${endMin}`;
+
+    const mapInfo: MapInfo | undefined =
+      mapQuery.trim() || mapUrl.trim()
+        ? { type: mapType, query: mapQuery.trim() || undefined, url: mapUrl.trim() || undefined }
+        : undefined;
+
+    const validLinks = links.filter((l) => l.url.trim());
 
     const eventData: Omit<ScheduleEvent, "id"> = {
       title: title.trim(),
@@ -87,8 +120,10 @@ export default function EventFormScreen() {
       category: category as ScheduleEvent["category"],
       members: selectedMembers,
       location: location.trim() || undefined,
-      naverQuery: naverQuery.trim() || undefined,
+      mapInfo,
+      links: validLinks.length > 0 ? validLinks : undefined,
       note: note.trim() || undefined,
+      sortOrder: existingEvent?.sortOrder,
     };
 
     if (isEditing && existingEvent) {
@@ -114,16 +149,6 @@ export default function EventFormScreen() {
     ]);
   }
 
-  function formatTimeInput(text: string, setter: (v: string) => void) {
-    // Allow only digits and colon
-    const cleaned = text.replace(/[^0-9:]/g, "");
-    if (cleaned.length === 2 && !cleaned.includes(":")) {
-      setter(cleaned + ":");
-    } else {
-      setter(cleaned.slice(0, 5));
-    }
-  }
-
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <KeyboardAvoidingView
@@ -132,10 +157,7 @@ export default function EventFormScreen() {
       >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-          >
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
             <MaterialIcons name="close" size={24} color={colors.foreground} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
@@ -170,58 +192,138 @@ export default function EventFormScreen() {
           {/* Day */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.foreground }]}>日程</Text>
-            <View style={styles.chipRow}>
-              {DAYS.map((day) => (
-                <Pressable
-                  key={day.index}
-                  onPress={() => setDayIndex(day.index)}
-                  style={({ pressed }) => [
-                    styles.chip,
-                    {
-                      backgroundColor: dayIndex === day.index ? colors.primary : colors.surface,
-                      borderColor: dayIndex === day.index ? colors.primary : colors.border,
-                    },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: dayIndex === day.index ? "#fff" : colors.foreground },
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.chipRow}>
+                {days.map((day) => (
+                  <Pressable
+                    key={day.index}
+                    onPress={() => setDayIndex(day.index)}
+                    style={({ pressed }) => [
+                      styles.chip,
+                      {
+                        backgroundColor: dayIndex === day.index ? colors.primary : colors.surface,
+                        borderColor: dayIndex === day.index ? colors.primary : colors.border,
+                      },
+                      pressed && { opacity: 0.7 },
                     ]}
                   >
-                    {day.dayLabel}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+                    <Text style={[styles.chipText, { color: dayIndex === day.index ? "#fff" : colors.foreground }]}>
+                      {day.dayLabel} {day.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
           </View>
 
-          {/* Time */}
+          {/* Time - Picker style */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.foreground }]}>時間</Text>
-            <View style={styles.timeRow}>
-              <TextInput
-                style={[styles.timeInput, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
-                value={startTime}
-                onChangeText={(t) => formatTimeInput(t, setStartTime)}
-                placeholder="09:00"
-                placeholderTextColor={colors.muted}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                returnKeyType="done"
-              />
-              <Text style={[styles.timeSeparator, { color: colors.muted }]}>〜</Text>
-              <TextInput
-                style={[styles.timeInput, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
-                value={endTime}
-                onChangeText={(t) => formatTimeInput(t, setEndTime)}
-                placeholder="10:00"
-                placeholderTextColor={colors.muted}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                returnKeyType="done"
-              />
+            <View style={styles.timePickerRow}>
+              {/* Start time */}
+              <View style={styles.timePickerGroup}>
+                <Text style={[styles.timeLabel, { color: colors.muted }]}>開始</Text>
+                <View style={styles.timeSelectors}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
+                    <View style={styles.timeChipRow}>
+                      {HOURS.map((h) => (
+                        <Pressable
+                          key={`sh-${h}`}
+                          onPress={() => setStartHour(h)}
+                          style={[
+                            styles.timeChip,
+                            {
+                              backgroundColor: startHour === h ? colors.primary : colors.surface,
+                              borderColor: startHour === h ? colors.primary : colors.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.timeChipText, { color: startHour === h ? "#fff" : colors.foreground }]}>
+                            {h}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </ScrollView>
+                  <Text style={[styles.timeSep, { color: colors.muted }]}>:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
+                    <View style={styles.timeChipRow}>
+                      {MINUTES.map((m) => (
+                        <Pressable
+                          key={`sm-${m}`}
+                          onPress={() => setStartMin(m)}
+                          style={[
+                            styles.timeChip,
+                            {
+                              backgroundColor: startMin === m ? colors.primary : colors.surface,
+                              borderColor: startMin === m ? colors.primary : colors.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.timeChipText, { color: startMin === m ? "#fff" : colors.foreground }]}>
+                            {m}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              </View>
+              {/* End time */}
+              <View style={styles.timePickerGroup}>
+                <Text style={[styles.timeLabel, { color: colors.muted }]}>終了</Text>
+                <View style={styles.timeSelectors}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
+                    <View style={styles.timeChipRow}>
+                      {HOURS.map((h) => (
+                        <Pressable
+                          key={`eh-${h}`}
+                          onPress={() => setEndHour(h)}
+                          style={[
+                            styles.timeChip,
+                            {
+                              backgroundColor: endHour === h ? colors.primary : colors.surface,
+                              borderColor: endHour === h ? colors.primary : colors.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.timeChipText, { color: endHour === h ? "#fff" : colors.foreground }]}>
+                            {h}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </ScrollView>
+                  <Text style={[styles.timeSep, { color: colors.muted }]}>:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScrollH}>
+                    <View style={styles.timeChipRow}>
+                      {MINUTES.map((m) => (
+                        <Pressable
+                          key={`em-${m}`}
+                          onPress={() => setEndMin(m)}
+                          style={[
+                            styles.timeChip,
+                            {
+                              backgroundColor: endMin === m ? colors.primary : colors.surface,
+                              borderColor: endMin === m ? colors.primary : colors.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.timeChipText, { color: endMin === m ? "#fff" : colors.foreground }]}>
+                            {m}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              </View>
+            </View>
+            <View style={[styles.timePreview, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <MaterialIcons name="schedule" size={16} color={colors.primary} />
+              <Text style={[styles.timePreviewText, { color: colors.foreground }]}>
+                {startHour}:{startMin} 〜 {endHour}:{endMin}
+              </Text>
             </View>
           </View>
 
@@ -243,12 +345,7 @@ export default function EventFormScreen() {
                   ]}
                 >
                   <Text style={styles.chipIcon}>{cat.icon}</Text>
-                  <Text
-                    style={[
-                      styles.chipText,
-                      { color: category === cat.value ? "#fff" : colors.foreground },
-                    ]}
-                  >
+                  <Text style={[styles.chipText, { color: category === cat.value ? "#fff" : colors.foreground }]}>
                     {cat.label}
                   </Text>
                 </Pressable>
@@ -278,12 +375,7 @@ export default function EventFormScreen() {
                     ]}
                   >
                     <Text style={styles.chipIcon}>{member.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.chipText,
-                        { color: isSelected ? "#fff" : colors.foreground },
-                      ]}
-                    >
+                    <Text style={[styles.chipText, { color: isSelected ? "#fff" : colors.foreground }]}>
                       {member.name}
                     </Text>
                   </Pressable>
@@ -305,17 +397,108 @@ export default function EventFormScreen() {
             />
           </View>
 
-          {/* Naver Map Query */}
+          {/* Map */}
           <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>Naver Map検索（韓国語）</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>マップ</Text>
+            {/* Map type selector */}
+            <View style={styles.chipRow}>
+              <Pressable
+                onPress={() => setMapType("naver")}
+                style={({ pressed }) => [
+                  styles.chip,
+                  {
+                    backgroundColor: mapType === "naver" ? "#03C75A" : colors.surface,
+                    borderColor: mapType === "naver" ? "#03C75A" : colors.border,
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.chipText, { color: mapType === "naver" ? "#fff" : colors.foreground }]}>
+                  Naver Map
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setMapType("google")}
+                style={({ pressed }) => [
+                  styles.chip,
+                  {
+                    backgroundColor: mapType === "google" ? "#4285F4" : colors.surface,
+                    borderColor: mapType === "google" ? "#4285F4" : colors.border,
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={[styles.chipText, { color: mapType === "google" ? "#fff" : colors.foreground }]}>
+                  Google Map
+                </Text>
+              </Pressable>
+            </View>
             <TextInput
               style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
-              value={naverQuery}
-              onChangeText={setNaverQuery}
-              placeholder="例: 명동"
+              value={mapQuery}
+              onChangeText={setMapQuery}
+              placeholder={mapType === "naver" ? "検索クエリ（例: 명동）" : "検索クエリ（例: Myeongdong）"}
               placeholderTextColor={colors.muted}
               returnKeyType="done"
             />
+            <TextInput
+              style={[styles.input, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+              value={mapUrl}
+              onChangeText={setMapUrl}
+              placeholder="マップURL（直接リンク）"
+              placeholderTextColor={colors.muted}
+              returnKeyType="done"
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+          </View>
+
+          {/* Links */}
+          <View style={styles.field}>
+            <View style={styles.fieldHeader}>
+              <Text style={[styles.label, { color: colors.foreground }]}>リンク</Text>
+              <Pressable
+                onPress={addLink}
+                style={({ pressed }) => [
+                  styles.addLinkButton,
+                  { borderColor: colors.primary },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MaterialIcons name="add" size={16} color={colors.primary} />
+                <Text style={[styles.addLinkText, { color: colors.primary }]}>追加</Text>
+              </Pressable>
+            </View>
+            {links.map((link) => (
+              <View key={link.id} style={[styles.linkRow, { borderColor: colors.border }]}>
+                <View style={styles.linkInputs}>
+                  <TextInput
+                    style={[styles.linkInput, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+                    value={link.label}
+                    onChangeText={(v) => updateLink(link.id, "label", v)}
+                    placeholder="ラベル"
+                    placeholderTextColor={colors.muted}
+                    returnKeyType="done"
+                  />
+                  <TextInput
+                    style={[styles.linkInput, { color: colors.foreground, backgroundColor: colors.surface, borderColor: colors.border }]}
+                    value={link.url}
+                    onChangeText={(v) => updateLink(link.id, "url", v)}
+                    placeholder="URL"
+                    placeholderTextColor={colors.muted}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                    returnKeyType="done"
+                  />
+                </View>
+                <Pressable
+                  onPress={() => removeLink(link.id)}
+                  style={({ pressed }) => [pressed && { opacity: 0.5 }]}
+                >
+                  <MaterialIcons name="close" size={20} color={colors.error} />
+                </Pressable>
+              </View>
+            ))}
           </View>
 
           {/* Note */}
@@ -333,7 +516,7 @@ export default function EventFormScreen() {
             />
           </View>
 
-          {/* Delete button */}
+          {/* Delete */}
           {isEditing && (
             <Pressable
               onPress={handleDelete}
@@ -364,69 +547,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 0.5,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 18,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  form: {
-    padding: 16,
-    gap: 20,
-  },
-  field: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
-  },
-  textArea: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
-    minHeight: 90,
-  },
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  timeInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
-    textAlign: "center",
-  },
-  timeSeparator: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  headerTitle: { fontSize: 17, fontWeight: "700" },
+  saveButton: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18 },
+  saveButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  form: { padding: 16, gap: 20 },
+  field: { gap: 8 },
+  fieldHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  label: { fontSize: 14, fontWeight: "700" },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
+  textArea: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, minHeight: 90 },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
     flexDirection: "row",
     alignItems: "center",
@@ -436,13 +566,52 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 4,
   },
-  chipIcon: {
-    fontSize: 14,
+  chipIcon: { fontSize: 14 },
+  chipText: { fontSize: 13, fontWeight: "600" },
+  timePickerRow: { gap: 12 },
+  timePickerGroup: { gap: 6 },
+  timeLabel: { fontSize: 12, fontWeight: "600" },
+  timeSelectors: { flexDirection: "row", alignItems: "center", gap: 4 },
+  timeScrollH: { maxHeight: 36 },
+  timeChipRow: { flexDirection: "row", gap: 4 },
+  timeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 36,
+    alignItems: "center",
   },
-  chipText: {
-    fontSize: 13,
-    fontWeight: "600",
+  timeChipText: { fontSize: 13, fontWeight: "600" },
+  timeSep: { fontSize: 16, fontWeight: "700", marginHorizontal: 2 },
+  timePreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
   },
+  timePreviewText: { fontSize: 15, fontWeight: "700" },
+  addLinkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 2,
+  },
+  addLinkText: { fontSize: 12, fontWeight: "600" },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+  },
+  linkInputs: { flex: 1, gap: 6 },
+  linkInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontSize: 14 },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -453,8 +622,5 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 10,
   },
-  deleteButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  deleteButtonText: { fontSize: 14, fontWeight: "700" },
 });

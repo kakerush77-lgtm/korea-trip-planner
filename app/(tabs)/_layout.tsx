@@ -32,7 +32,7 @@ export default function TabLayout() {
         options={{
           title: "スケジュール",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="calendar" color={color} />
+            <IconSymbol size={24} name="calendar" color={color} />
           ),
         }}
       />
@@ -41,7 +41,25 @@ export default function TabLayout() {
         options={{
           title: "メンバー",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={26} name="person.2.fill" color={color} />
+            <IconSymbol size={24} name="person.2.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="packing"
+        options={{
+          title: "持ち物",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="suitcase.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "旅行管理",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="globe" color={color} />
           ),
         }}
       />

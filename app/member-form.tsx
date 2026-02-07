@@ -28,11 +28,13 @@ export default function MemberFormScreen() {
   const colors = useColors();
   const router = useRouter();
   const params = useLocalSearchParams<{ memberId?: string }>();
-  const { state, addMember, updateMember, deleteMember } = useAppStore();
+  const { currentTrip, addMember, updateMember, deleteMember } = useAppStore();
+
+  const members = currentTrip?.members ?? [];
 
   const isEditing = !!params.memberId;
   const existingMember = isEditing
-    ? state.members.find((m) => m.id === params.memberId)
+    ? members.find((m) => m.id === params.memberId)
     : undefined;
 
   const [name, setName] = useState(existingMember?.name ?? "");
@@ -81,10 +83,7 @@ export default function MemberFormScreen() {
       >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [pressed && { opacity: 0.6 }]}
-          >
+          <Pressable onPress={() => router.back()} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
             <MaterialIcons name="close" size={24} color={colors.foreground} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
@@ -125,9 +124,7 @@ export default function MemberFormScreen() {
               ]}
             >
               <Text style={styles.emojiSelectorEmoji}>{emoji}</Text>
-              <Text style={[styles.emojiSelectorText, { color: colors.muted }]}>
-                タップして変更
-              </Text>
+              <Text style={[styles.emojiSelectorText, { color: colors.muted }]}>タップして変更</Text>
               <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
             </Pressable>
           </View>
@@ -160,9 +157,7 @@ export default function MemberFormScreen() {
                     pressed && { opacity: 0.7 },
                   ]}
                 >
-                  {color === c && (
-                    <MaterialIcons name="check" size={18} color="#fff" />
-                  )}
+                  {color === c && <MaterialIcons name="check" size={18} color="#fff" />}
                 </Pressable>
               ))}
             </View>
@@ -179,9 +174,7 @@ export default function MemberFormScreen() {
               ]}
             >
               <MaterialIcons name="delete-outline" size={18} color={colors.error} />
-              <Text style={[styles.deleteButtonText, { color: colors.error }]}>
-                このメンバーを削除
-              </Text>
+              <Text style={[styles.deleteButtonText, { color: colors.error }]}>このメンバーを削除</Text>
             </Pressable>
           )}
 
@@ -208,57 +201,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 0.5,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 18,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  form: {
-    padding: 16,
-    gap: 24,
-  },
-  previewSection: {
-    alignItems: "center",
-    paddingVertical: 16,
-    gap: 10,
-  },
-  previewCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  previewEmoji: {
-    fontSize: 38,
-  },
-  previewName: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  field: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 15,
-  },
+  headerTitle: { fontSize: 17, fontWeight: "700" },
+  saveButton: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18 },
+  saveButtonText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  form: { padding: 16, gap: 24 },
+  previewSection: { alignItems: "center", paddingVertical: 16, gap: 10 },
+  previewCircle: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center" },
+  previewEmoji: { fontSize: 38 },
+  previewName: { fontSize: 20, fontWeight: "700" },
+  field: { gap: 8 },
+  label: { fontSize: 14, fontWeight: "700" },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15 },
   emojiSelector: {
     flexDirection: "row",
     alignItems: "center",
@@ -268,25 +221,10 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     gap: 10,
   },
-  emojiSelectorEmoji: {
-    fontSize: 28,
-  },
-  emojiSelectorText: {
-    flex: 1,
-    fontSize: 14,
-  },
-  colorGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  colorButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  emojiSelectorEmoji: { fontSize: 28 },
+  emojiSelectorText: { flex: 1, fontSize: 14 },
+  colorGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  colorButton: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   colorButtonSelected: {
     borderWidth: 3,
     borderColor: "#fff",
@@ -306,8 +244,5 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 10,
   },
-  deleteButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  deleteButtonText: { fontSize: 14, fontWeight: "700" },
 });
