@@ -17,13 +17,14 @@ import { useAppStore } from "@/lib/store";
 import { LinkItem } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { ScrollCategoryPicker, CategoryOption } from "@/components/scroll-category-picker";
 
-const CATEGORIES = [
-  { id: "restaurant", label: "レストラン", emoji: "🍽️" },
-  { id: "hotel", label: "ホテル", emoji: "🏨" },
-  { id: "shopping", label: "ショッピング", emoji: "🛍️" },
-  { id: "sightseeing", label: "観光", emoji: "📸" },
-  { id: "other", label: "その他", emoji: "📌" },
+const CATEGORIES: CategoryOption[] = [
+  { value: "restaurant", label: "レストラン", icon: "🍽️" },
+  { value: "hotel", label: "ホテル", icon: "🏨" },
+  { value: "shopping", label: "ショッピング", icon: "🛍️" },
+  { value: "sightseeing", label: "観光", icon: "📸" },
+  { value: "other", label: "その他", icon: "📌" },
 ];
 
 export default function LinksScreen() {
@@ -32,6 +33,7 @@ export default function LinksScreen() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("other");
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [newUrl, setNewUrl] = useState("");
   const [newNote, setNewNote] = useState("");
   const [newMember, setNewMember] = useState("everyone");
@@ -90,7 +92,7 @@ export default function LinksScreen() {
   }
 
   function getCategoryEmoji(category?: string) {
-    return CATEGORIES.find((c) => c.id === category)?.emoji ?? "📌";
+    return CATEGORIES.find((c) => c.value === category)?.icon ?? "📌";
   }
 
   const renderItem = useCallback(
@@ -217,32 +219,22 @@ export default function LinksScreen() {
               onChangeText={setNewTitle}
               style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
             />
-            <View style={styles.categoryRow}>
-              {CATEGORIES.map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  onPress={() => setNewCategory(cat.id)}
-                  style={({ pressed }) => [
-                    styles.categoryChip,
-                    {
-                      backgroundColor: newCategory === cat.id ? colors.primary : colors.background,
-                      borderColor: colors.border,
-                    },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={styles.categoryChipEmoji}>{cat.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.categoryChipLabel,
-                      { color: newCategory === cat.id ? "#fff" : colors.foreground },
-                    ]}
-                  >
-                    {cat.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <Pressable
+              onPress={() => setShowCategoryPicker(true)}
+              style={({ pressed }) => [
+                styles.categorySelector,
+                { backgroundColor: colors.background, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={styles.categorySelectorIcon}>
+                {CATEGORIES.find((c) => c.value === newCategory)?.icon ?? "📌"}
+              </Text>
+              <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
+                {CATEGORIES.find((c) => c.value === newCategory)?.label ?? "その他"}
+              </Text>
+              <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
+            </Pressable>
             <TextInput
               placeholder="URL"
               placeholderTextColor={colors.muted}
@@ -340,6 +332,14 @@ export default function LinksScreen() {
           </Pressable>
         )}
       </KeyboardAvoidingView>
+      <ScrollCategoryPicker
+        visible={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        onConfirm={setNewCategory}
+        categories={CATEGORIES}
+        initialValue={newCategory}
+        label="カテゴリを選択"
+      />
     </ScreenContainer>
   );
 }
@@ -398,28 +398,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
   },
-  categoryRow: {
+  categorySelector: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 12,
     gap: 8,
   },
-  categoryChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  categoryChipEmoji: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  categoryChipLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  categorySelectorIcon: { fontSize: 18 },
+  categorySelectorText: { fontSize: 14, fontWeight: "600", flex: 1 },
   memberRow: {
     flexDirection: "row",
     flexWrap: "wrap",

@@ -84,15 +84,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: "管理",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="globe" color={color} />
-          ),
-        }}
-      />
     </Tabs>
   );
 }

@@ -17,9 +17,10 @@ import { useAppStore } from "@/lib/store";
 import { ScheduleEvent, MemberId, EventLink, MapInfo, MapType } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import { ScrollTimePicker } from "@/components/scroll-time-picker";
+import { ScrollCategoryPicker, CategoryOption } from "@/components/scroll-category-picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-const CATEGORIES = [
+const CATEGORIES: CategoryOption[] = [
   { value: "transport", label: "移動", icon: "🚇" },
   { value: "food", label: "グルメ", icon: "🍽️" },
   { value: "shopping", label: "ショッピング", icon: "🛍️" },
@@ -68,6 +69,7 @@ export default function EventFormScreen() {
   // Time picker modal states
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   const allMembers = useMemo(() => [EVERYONE_MEMBER, ...members], [members]);
 
@@ -255,27 +257,22 @@ export default function EventFormScreen() {
           {/* Category */}
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.foreground }]}>カテゴリ</Text>
-            <View style={styles.chipRow}>
-              {CATEGORIES.map((cat) => (
-                <Pressable
-                  key={cat.value}
-                  onPress={() => setCategory(cat.value)}
-                  style={({ pressed }) => [
-                    styles.chip,
-                    {
-                      backgroundColor: category === cat.value ? colors.primary : colors.surface,
-                      borderColor: category === cat.value ? colors.primary : colors.border,
-                    },
-                    pressed && { opacity: 0.7 },
-                  ]}
-                >
-                  <Text style={styles.chipIcon}>{cat.icon}</Text>
-                  <Text style={[styles.chipText, { color: category === cat.value ? "#fff" : colors.foreground }]}>
-                    {cat.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <Pressable
+              onPress={() => setShowCategoryPicker(true)}
+              style={({ pressed }) => [
+                styles.categorySelector,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <Text style={styles.categorySelectorIcon}>
+                {CATEGORIES.find((c) => c.value === category)?.icon ?? "📌"}
+              </Text>
+              <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
+                {CATEGORIES.find((c) => c.value === category)?.label ?? "その他"}
+              </Text>
+              <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
+            </Pressable>
           </View>
 
           {/* Members */}
@@ -476,6 +473,14 @@ export default function EventFormScreen() {
         initialMinute={endMin}
         label="終了時間"
       />
+      <ScrollCategoryPicker
+        visible={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        onConfirm={setCategory}
+        categories={CATEGORIES}
+        initialValue={category}
+        label="カテゴリを選択"
+      />
     </ScreenContainer>
   );
 }
@@ -554,4 +559,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   deleteButtonText: { fontSize: 14, fontWeight: "700" },
+  categorySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  categorySelectorIcon: { fontSize: 20 },
+  categorySelectorText: { fontSize: 15, fontWeight: "600", flex: 1 },
 });

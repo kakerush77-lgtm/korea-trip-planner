@@ -34,6 +34,10 @@ const MAPPING = {
   "globe": "language",
   "mappin.and.ellipse": "place",
   "bag.fill": "shopping-bag",
+  "plus": "add",
+  "gearshape.fill": "settings",
+  "arrow.down.doc.fill": "file-download",
+  "arrow.up.doc.fill": "file-upload",
 } as IconMapping;
 
 export function IconSymbol({

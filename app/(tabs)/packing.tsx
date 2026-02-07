@@ -16,6 +16,7 @@ import { useAppStore } from "@/lib/store";
 import { PackingItem } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { ScrollCategoryPicker, CategoryOption } from "@/components/scroll-category-picker";
 
 const CATEGORIES = [
   { value: "all", label: "すべて", icon: "📦" },
@@ -28,6 +29,8 @@ const CATEGORIES = [
   { value: "other", label: "その他", icon: "📌" },
 ];
 
+const CATEGORY_PICKER_OPTIONS: CategoryOption[] = CATEGORIES.filter((c) => c.value !== "all");
+
 export default function PackingScreen() {
   const colors = useColors();
   const { currentTrip, addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem } = useAppStore();
@@ -38,6 +41,7 @@ export default function PackingScreen() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterMember, setFilterMember] = useState("all");
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   const members = currentTrip?.members ?? [];
   const packingItems = currentTrip?.packingItems ?? [];
@@ -256,31 +260,22 @@ export default function PackingScreen() {
             {/* Category selector */}
             <View style={styles.addFormSection}>
               <Text style={[styles.addFormLabel, { color: colors.muted }]}>カテゴリ</Text>
-              <View style={styles.addCategoryRow}>
-                {CATEGORIES.filter((c) => c.value !== "all").map((cat) => (
-                  <Pressable
-                    key={cat.value}
-                    onPress={() => setNewItemCategory(cat.value)}
-                    style={[
-                      styles.miniChip,
-                      {
-                        backgroundColor: newItemCategory === cat.value ? colors.primary : colors.background,
-                        borderColor: newItemCategory === cat.value ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text style={styles.miniChipIcon}>{cat.icon}</Text>
-                    <Text
-                      style={[
-                        styles.miniChipText,
-                        { color: newItemCategory === cat.value ? "#fff" : colors.foreground },
-                      ]}
-                    >
-                      {cat.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              <Pressable
+                onPress={() => setShowCategoryPicker(true)}
+                style={({ pressed }) => [
+                  styles.categorySelector,
+                  { backgroundColor: colors.background, borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <Text style={styles.categorySelectorIcon}>
+                  {CATEGORIES.find((c) => c.value === newItemCategory)?.icon ?? "📌"}
+                </Text>
+                <Text style={[styles.categorySelectorText, { color: colors.foreground }]}>
+                  {CATEGORIES.find((c) => c.value === newItemCategory)?.label ?? "その他"}
+                </Text>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color={colors.muted} />
+              </Pressable>
             </View>
             <View style={styles.quantityRow}>
               <Text style={[styles.quantityLabel, { color: colors.muted }]}>数量:</Text>
@@ -404,6 +399,14 @@ export default function PackingScreen() {
           }
         />
       </KeyboardAvoidingView>
+      <ScrollCategoryPicker
+        visible={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        onConfirm={setNewItemCategory}
+        categories={CATEGORY_PICKER_OPTIONS}
+        initialValue={newItemCategory}
+        label="カテゴリを選択"
+      />
     </ScreenContainer>
   );
 }
@@ -497,4 +500,15 @@ const styles = StyleSheet.create({
   itemMember: { fontSize: 12 },
   emptyContainer: { alignItems: "center", justifyContent: "center", paddingVertical: 60, gap: 12 },
   emptyText: { fontSize: 14, fontWeight: "500" },
+  categorySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  categorySelectorIcon: { fontSize: 16 },
+  categorySelectorText: { fontSize: 14, fontWeight: "600", flex: 1 },
 });

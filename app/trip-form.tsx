@@ -15,7 +15,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAppStore, generateDays } from "@/lib/store";
 import { EmojiPicker } from "@/components/emoji-picker";
-import { CalendarPicker } from "@/components/calendar-picker";
+import { ScrollDatePicker } from "@/components/scroll-date-picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 const TRIP_EMOJIS = ["✈️", "🇰🇷", "🇯🇵", "🇺🇸", "🇫🇷", "🇮🇹", "🇹🇭", "🇹🇼", "🏖️", "🏔️", "🌏", "🗺️", "🚗", "🚢", "🏕️", "🎒"];
@@ -45,8 +45,8 @@ export default function TripFormScreen() {
   const [startDate, setStartDate] = useState(existingTrip?.startDate ?? "");
   const [endDate, setEndDate] = useState(existingTrip?.endDate ?? "");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showStartCalendar, setShowStartCalendar] = useState(false);
-  const [showEndCalendar, setShowEndCalendar] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   function handleSave() {
     if (!name.trim()) {
@@ -188,7 +188,7 @@ export default function TripFormScreen() {
             <Text style={[styles.label, { color: colors.foreground }]}>旅行期間 *</Text>
             <View style={styles.dateRow}>
               <Pressable
-                onPress={() => setShowStartCalendar(true)}
+                onPress={() => setShowStartDatePicker(true)}
                 style={({ pressed }) => [
                   styles.dateButton,
                   { backgroundColor: colors.surface, borderColor: startDate ? colors.primary : colors.border },
@@ -205,7 +205,7 @@ export default function TripFormScreen() {
               </Pressable>
               <MaterialIcons name="arrow-forward" size={16} color={colors.muted} />
               <Pressable
-                onPress={() => setShowEndCalendar(true)}
+                onPress={() => setShowEndDatePicker(true)}
                 style={({ pressed }) => [
                   styles.dateButton,
                   { backgroundColor: colors.surface, borderColor: endDate ? colors.primary : colors.border },
@@ -256,21 +256,22 @@ export default function TripFormScreen() {
         onSelect={setEmoji}
         currentEmoji={emoji}
       />
-      <CalendarPicker
-        visible={showStartCalendar}
-        onClose={() => setShowStartCalendar(false)}
-        onSelect={(date) => {
+      <ScrollDatePicker
+        visible={showStartDatePicker}
+        onClose={() => setShowStartDatePicker(false)}
+        onConfirm={(date) => {
           setStartDate(date);
           if (!endDate || date > endDate) setEndDate(date);
         }}
-        selectedDate={startDate}
+        initialDate={startDate || undefined}
+        label="開始日を選択"
       />
-      <CalendarPicker
-        visible={showEndCalendar}
-        onClose={() => setShowEndCalendar(false)}
-        onSelect={setEndDate}
-        selectedDate={endDate}
-        minDate={startDate || undefined}
+      <ScrollDatePicker
+        visible={showEndDatePicker}
+        onClose={() => setShowEndDatePicker(false)}
+        onConfirm={setEndDate}
+        initialDate={endDate || startDate || undefined}
+        label="終了日を選択"
       />
     </ScreenContainer>
   );
