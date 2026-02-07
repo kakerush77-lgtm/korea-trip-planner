@@ -19,6 +19,7 @@ import { LinkItem } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { ScrollCategoryPicker, CategoryOption } from "@/components/scroll-category-picker";
+import { UNIFIED_HEADER_STYLES, HEADER_CONSTANTS } from "@/constants/header-styles";
 
 const CATEGORIES: CategoryOption[] = [
   { value: "restaurant", label: "レストラン", icon: "🍽️" },
@@ -166,7 +167,7 @@ export default function LinksScreen() {
                 pressed && { opacity: 0.6 },
               ]}
             >
-              <MaterialIcons name="home" size={20} color={colors.primary} />
+              <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
             </Pressable>
             <View style={{ flex: 1 }}>
               <Text style={[styles.title, { color: colors.foreground }]}>🔗 リンク集</Text>
@@ -361,32 +362,11 @@ export default function LinksScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  homeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 14,
-    marginTop: 4,
-  },
+  header: UNIFIED_HEADER_STYLES.header,
+  headerRow: UNIFIED_HEADER_STYLES.headerLeft,
+  homeButton: UNIFIED_HEADER_STYLES.homeButton,
+  title: UNIFIED_HEADER_STYLES.headerTitle,
+  subtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
   filterContainer: {
     paddingVertical: 12,
     paddingHorizontal: 16,

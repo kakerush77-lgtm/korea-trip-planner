@@ -19,6 +19,7 @@ import { useAppStore } from "@/lib/store";
 import { ShoppingItem } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { UNIFIED_HEADER_STYLES, HEADER_CONSTANTS } from "@/constants/header-styles";
 
 export default function ShoppingScreen() {
   const colors = useColors();
@@ -169,7 +170,7 @@ export default function ShoppingScreen() {
             pressed && { opacity: 0.6 },
           ]}
         >
-          <MaterialIcons name="home" size={20} color={colors.primary} />
+          <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
         </Pressable>
         <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={1}>🛒️ 買いたいもの</Text>
         <View style={styles.headerRight}>
@@ -341,27 +342,9 @@ export default function ShoppingScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  homeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
+  header: UNIFIED_HEADER_STYLES.header,
+  homeButton: UNIFIED_HEADER_STYLES.homeButton,
+  title: UNIFIED_HEADER_STYLES.headerTitle,
   headerRight: {
     flexDirection: "row",
     alignItems: "center",

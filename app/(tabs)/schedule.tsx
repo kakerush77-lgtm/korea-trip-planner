@@ -10,6 +10,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useAppStore } from "@/lib/store";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { UNIFIED_HEADER_STYLES, HEADER_CONSTANTS } from "@/constants/header-styles";
 
 export default function ScheduleScreen() {
   const colors = useColors();
@@ -152,7 +153,7 @@ export default function ScheduleScreen() {
               pressed && { opacity: 0.6 },
             ]}
           >
-            <MaterialIcons name="home" size={20} color={colors.primary} />
+            <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerEmoji}>{currentTrip.emoji}</Text>
           <View style={{ flex: 1 }}>
@@ -179,7 +180,7 @@ export default function ScheduleScreen() {
           >
             <MaterialIcons
               name="swap-vert"
-              size={18}
+              size={HEADER_CONSTANTS.ICON_SIZE}
               color={isReorderMode ? "#fff" : colors.foreground}
             />
           </Pressable>
@@ -192,7 +193,7 @@ export default function ScheduleScreen() {
               pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
             ]}
           >
-            <MaterialIcons name="add" size={22} color="#fff" />
+            <MaterialIcons name="add" size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
           </Pressable>
         </View>
       </View>
@@ -308,44 +309,16 @@ export default function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  homeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
+  header: UNIFIED_HEADER_STYLES.header,
+  headerLeft: UNIFIED_HEADER_STYLES.headerLeft,
+  homeButton: UNIFIED_HEADER_STYLES.homeButton,
   headerEmoji: { fontSize: 28 },
-  headerTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
-  headerSubtitle: { fontSize: 12, fontWeight: "500", marginTop: 1 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  iconButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
-  addButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  headerTitle: UNIFIED_HEADER_STYLES.headerTitle,
+  headerSubtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
+  headerActions: UNIFIED_HEADER_STYLES.headerRight,
+  iconButton: UNIFIED_HEADER_STYLES.iconButton,
+  addButton: UNIFIED_HEADER_STYLES.addButton,
+  addButtonInner: {
     alignItems: "center",
     justifyContent: "center",
   },

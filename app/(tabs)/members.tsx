@@ -7,6 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { useRouter } from "expo-router";
 import { useAppStore } from "@/lib/store";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { UNIFIED_HEADER_STYLES, HEADER_CONSTANTS } from "@/constants/header-styles";
 
 export default function MembersScreen() {
   const colors = useColors();
@@ -76,7 +77,7 @@ export default function MembersScreen() {
               pressed && { opacity: 0.6 },
             ]}
           >
-            <MaterialIcons name="home" size={20} color={colors.primary} />
+            <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
           </Pressable>
           <Text style={styles.headerEmoji}>👥</Text>
           <View style={{ flex: 1 }}>
@@ -94,7 +95,7 @@ export default function MembersScreen() {
             pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
           ]}
         >
-          <MaterialIcons name="person-add" size={20} color="#fff" />
+          <MaterialIcons name="person-add" size={HEADER_CONSTANTS.ICON_SIZE} color="#fff" />
         </Pressable>
       </View>
 
@@ -116,38 +117,13 @@ export default function MembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  homeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-  },
+  header: UNIFIED_HEADER_STYLES.header,
+  headerLeft: UNIFIED_HEADER_STYLES.headerLeft,
+  homeButton: UNIFIED_HEADER_STYLES.homeButton,
   headerEmoji: { fontSize: 28 },
-  headerTitle: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3 },
-  headerSubtitle: { fontSize: 12, fontWeight: "500", marginTop: 1 },
-  addButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerTitle: UNIFIED_HEADER_STYLES.headerTitle,
+  headerSubtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
+  addButton: UNIFIED_HEADER_STYLES.addButton,
   listContent: { padding: 16, paddingBottom: 100, gap: 10 },
   card: {
     flexDirection: "row",

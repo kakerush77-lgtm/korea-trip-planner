@@ -18,6 +18,7 @@ import { PackingItem } from "@/data/types";
 import { EVERYONE_MEMBER } from "@/data/members";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { ScrollCategoryPicker, CategoryOption } from "@/components/scroll-category-picker";
+import { UNIFIED_HEADER_STYLES, HEADER_CONSTANTS } from "@/constants/header-styles";
 
 const CATEGORIES = [
   { value: "all", label: "すべて", icon: "📦" },
@@ -189,7 +190,7 @@ export default function PackingScreen() {
               pressed && { opacity: 0.6 },
             ]}
           >
-            <MaterialIcons name="home" size={20} color={colors.primary} />
+            <MaterialIcons name="home" size={HEADER_CONSTANTS.ICON_SIZE} color={colors.primary} />
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>持ち物リスト</Text>
@@ -205,7 +206,7 @@ export default function PackingScreen() {
               pressed && { opacity: 0.8 },
             ]}
           >
-            <MaterialIcons name={showAddForm ? "close" : "add"} size={20} color="#fff" />
+            <MaterialIcons name={showAddForm ? "close" : "add"} size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
           </Pressable>
         </View>
 
@@ -424,29 +425,12 @@ export default function PackingScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  homeButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderBottomWidth: 0.5,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "800" },
-  headerSub: { fontSize: 12, marginTop: 1 },
-  addButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  header: UNIFIED_HEADER_STYLES.header,
+  homeButton: UNIFIED_HEADER_STYLES.homeButton,
+  headerTitle: UNIFIED_HEADER_STYLES.headerTitle,
+  headerSub: UNIFIED_HEADER_STYLES.headerSubtitle,
+  addButton: UNIFIED_HEADER_STYLES.addButton,
+  addButtonInner: {
     alignItems: "center",
     justifyContent: "center",
   },
