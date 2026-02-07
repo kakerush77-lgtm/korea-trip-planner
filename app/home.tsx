@@ -107,39 +107,51 @@ export default function HomeScreen() {
   async function handleExportJSON(type: ExportType) {
     if (!currentTrip) return;
     let exportData: any;
-    let message = "";
+    let typeLabel = "";
 
     switch (type) {
       case "full":
         exportData = { version: 1, type: "full", exportedAt: new Date().toISOString(), trip: currentTrip };
-        message = "旅行データ全体をエクスポートしました";
+        typeLabel = "全体";
         break;
       case "links":
         exportData = { version: 1, type: "links", exportedAt: new Date().toISOString(), linkItems: currentTrip.linkItems ?? [] };
-        message = "リンク集をエクスポートしました";
+        typeLabel = "リンク";
         break;
       case "shopping":
         exportData = { version: 1, type: "shopping", exportedAt: new Date().toISOString(), shoppingItems: currentTrip.shoppingItems ?? [] };
-        message = "買いたいものリストをエクスポートしました";
+        typeLabel = "買い物";
         break;
       case "packing":
         exportData = { version: 1, type: "packing", exportedAt: new Date().toISOString(), packingItems: currentTrip.packingItems ?? [] };
-        message = "持ち物リストをエクスポートしました";
+        typeLabel = "持ち物";
         break;
     }
 
     const json = JSON.stringify(exportData, null, 2);
+    const fileName = `${currentTrip.name}_${currentTrip.startDate.replace(/\//g, "")}-${currentTrip.endDate.replace(/\//g, "")}_${typeLabel}.json`;
+
     if (Platform.OS === "web") {
-      try {
-        await navigator.clipboard.writeText(json);
-        Alert.alert("エクスポート完了", `${message}\nクリップボードにコピーしました。`);
-      } catch {
-        Alert.alert("エクスポートデータ", "クリップボードへのコピーに失敗しました");
-      }
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      Alert.alert("エクスポート完了", `${fileName}\nをダウンロードしました`);
     } else {
-      try {
-        await Share.share({ message: json, title: `${currentTrip.name} - ${message}` });
-      } catch {}
+      const FileSystem = await import("expo-file-system/legacy");
+      const Sharing = await import("expo-sharing");
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(fileUri, json, { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        Alert.alert("エクスポート完了", `${fileName}\nを保存しました`);
+      }
     }
     setShowExportModal(false);
   }
@@ -241,16 +253,6 @@ export default function HomeScreen() {
               <MaterialIcons name="file-upload" size={16} color="#fff" />
               <Text style={styles.actionChipText}>インポート</Text>
             </Pressable>
-            <Pressable
-              onPress={() => router.push("/day-manage")}
-              style={({ pressed }) => [
-                styles.actionChip,
-                { backgroundColor: "#6366F1", opacity: pressed ? 0.8 : 1 },
-              ]}
-            >
-              <MaterialIcons name="date-range" size={16} color="#fff" />
-              <Text style={styles.actionChipText}>日程</Text>
-            </Pressable>
           </View>
         </View>
       )}
@@ -348,8 +350,8 @@ export default function HomeScreen() {
 
       {/* Export Modal */}
       <Modal visible={showExportModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowExportModal(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>エクスポート</Text>
             <Text style={[styles.modalDesc, { color: colors.muted }]}>
               エクスポートする内容を選択してください
@@ -383,14 +385,14 @@ export default function HomeScreen() {
             >
               <Text style={styles.cancelBtnText}>キャンセル</Text>
             </Pressable>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Import Modal */}
       <Modal visible={showImportModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+        <Pressable style={styles.modalOverlay} onPress={() => { setShowImportModal(false); setImportText(""); }}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.background }]} onPress={(e) => e.stopPropagation()}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>インポート</Text>
             <Text style={[styles.modalDesc, { color: colors.muted }]}>
               JSONファイルを選択するか、テキストを貼り付けてください
@@ -455,6 +457,8 @@ export default function HomeScreen() {
               value={importText}
               onChangeText={setImportText}
               multiline
+              blurOnSubmit={false}
+              returnKeyType="done"
               style={[
                 styles.importInput,
                 { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface },
@@ -482,8 +486,8 @@ export default function HomeScreen() {
                 <Text style={styles.modalBtnText}>取り込む</Text>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </ScreenContainer>
   );

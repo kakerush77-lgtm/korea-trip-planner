@@ -150,9 +150,6 @@ export default function EventDetailScreen() {
                 <Text style={[styles.mapTitle, { color: event.mapInfo.type === "google" ? "#4285F4" : "#03C75A" }]}>
                   {event.mapInfo.type === "google" ? "Google Map" : "Naver Map"}で開く
                 </Text>
-                {event.mapInfo.query ? (
-                  <Text style={[styles.mapQuery, { color: colors.muted }]}>{event.mapInfo.query}</Text>
-                ) : null}
                 {event.mapInfo.url ? (
                   <Text style={[styles.mapQuery, { color: colors.muted }]} numberOfLines={1}>
                     {event.mapInfo.url}
@@ -164,25 +161,6 @@ export default function EventDetailScreen() {
                 size={18}
                 color={event.mapInfo.type === "google" ? "#4285F4" : "#03C75A"}
               />
-            </Pressable>
-          </View>
-        ) : event.naverQuery ? (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>マップ</Text>
-            <Pressable
-              onPress={() => openMap({ type: "naver", query: event.naverQuery })}
-              style={({ pressed }) => [
-                styles.mapCard,
-                { backgroundColor: "#03C75A10", borderColor: "#03C75A40" },
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <MaterialIcons name="map" size={22} color="#03C75A" />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.mapTitle, { color: "#03C75A" }]}>Naver Mapで開く</Text>
-                <Text style={[styles.mapQuery, { color: colors.muted }]}>{event.naverQuery}</Text>
-              </View>
-              <MaterialIcons name="open-in-new" size={18} color="#03C75A" />
             </Pressable>
           </View>
         ) : null}

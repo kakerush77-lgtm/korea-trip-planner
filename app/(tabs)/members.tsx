@@ -69,7 +69,7 @@ export default function MembersScreen() {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <View style={styles.headerLeft}>
           <Pressable
-            onPress={() => router.push("/home" as any)}
+            onPress={() => router.replace("/home" as any)}
             style={({ pressed }) => [
               styles.homeButton,
               { backgroundColor: colors.surface, borderColor: colors.border },
