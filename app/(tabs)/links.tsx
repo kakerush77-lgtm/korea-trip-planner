@@ -290,14 +290,24 @@ export default function LinksScreen() {
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Pressable onPress={() => setShowAddForm(false)} style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
+                <MaterialIcons name="close" size={24} color={colors.foreground} />
+              </Pressable>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>
                 {editingItem ? "リンクを編集" : "リンクを追加"}
               </Text>
-              <Pressable onPress={() => setShowAddForm(false)}>
-                <MaterialIcons name="close" size={24} color={colors.muted} />
+              <Pressable
+                onPress={handleAdd}
+                style={({ pressed }) => [
+                  styles.saveButton,
+                  { backgroundColor: colors.primary },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <Text style={styles.saveButtonText}>保存</Text>
               </Pressable>
             </View>
-            <ScrollView style={styles.modalBody}>
+            <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
               <TextInput
                 placeholder="タイトル"
                 placeholderTextColor={colors.muted}
@@ -338,7 +348,9 @@ export default function LinksScreen() {
                 style={[styles.modalInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.surface, height: 80 }]}
                 multiline
               />
-              <View style={styles.memberRow}>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.foreground }]}>担当</Text>
+                <View style={styles.memberRow}>
                 {assignMemberOptions.map((m) => (
                   <Pressable
                     key={m.id}
@@ -363,17 +375,9 @@ export default function LinksScreen() {
                     </Text>
                   </Pressable>
                 ))}
+                </View>
               </View>
-              <Pressable
-                onPress={handleAdd}
-                style={({ pressed }) => [
-                  styles.submitButton,
-                  { backgroundColor: colors.primary },
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={styles.submitButtonText}>{editingItem ? "保存" : "追加"}</Text>
-              </Pressable>
+              <View style={{ height: 40 }} />
             </ScrollView>
           </KeyboardAvoidingView>
         </ScreenContainer>
@@ -574,34 +578,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  saveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 18,
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "700",
   },
   modalBody: {
-    padding: 20,
+    padding: 16,
+    gap: 24,
+  },
+  field: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "700",
   },
   modalInput: {
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  submitButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "700",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 15,
   },
 });

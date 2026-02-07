@@ -295,7 +295,7 @@ export default function PackingScreen() {
               behavior={Platform.OS === "ios" ? "padding" : undefined}
               style={{ flex: 1 }}
             >
-              <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
+              <ScrollView contentContainerStyle={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
             <TextInput
               style={[styles.addInput, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
               value={newItemName}
@@ -614,28 +614,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "700",
   },
   saveButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 18,
   },
   saveButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
   },
-  modalScroll: {
-    flex: 1,
-  },
   modalScrollContent: {
-    padding: 20,
+    padding: 16,
+    gap: 24,
+  },
+  field: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
