@@ -75,7 +75,7 @@ export default function HomeScreen() {
 
   const handleTripPress = (tripId: string) => {
     setCurrentTrip(tripId);
-    router.back();
+    router.replace("/(tabs)/schedule" as any);
   };
 
   const handleCreateTrip = () => {
@@ -206,7 +206,7 @@ export default function HomeScreen() {
         title="旅行一覧"
         leftButton={{
           icon: "xmark.circle.fill",
-          onPress: () => router.back(),
+          onPress: () => router.replace("/(tabs)/schedule" as any),
         }}
         rightButton={{
           icon: "plus",
