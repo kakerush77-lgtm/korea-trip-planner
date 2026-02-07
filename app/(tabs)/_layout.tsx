@@ -33,6 +33,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: "ホーム",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={22} name="house.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="schedule"
+        options={{
           title: "スケジュール",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={22} name="calendar" color={color} />
