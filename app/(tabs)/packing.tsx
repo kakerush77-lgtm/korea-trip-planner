@@ -313,23 +313,24 @@ export default function PackingScreen() {
                 </View>
                 <View style={styles.field}>
                   <Text style={[styles.label, { color: colors.foreground }]}>担当</Text>
-                  <View style={styles.addCategoryRow}>
+                  <View style={styles.memberRow}>
                     {assignMemberOptions.map((m) => (
                       <Pressable
                         key={m.id}
                         onPress={() => setNewItemMember(m.id)}
-                        style={[
-                          styles.miniChip,
+                        style={({ pressed }) => [
+                          styles.memberChip,
                           {
-                            backgroundColor: newItemMember === m.id ? m.color : colors.background,
-                            borderColor: newItemMember === m.id ? m.color : colors.border,
+                            backgroundColor: newItemMember === m.id ? colors.primary : colors.surface,
+                            borderColor: colors.border,
                           },
+                          pressed && { opacity: 0.7 },
                         ]}
                       >
-                        <Text style={styles.miniChipIcon}>{m.emoji}</Text>
+                        <Text style={styles.memberChipEmoji}>{m.emoji}</Text>
                         <Text
                           style={[
-                            styles.miniChipText,
+                            styles.memberChipLabel,
                             { color: newItemMember === m.id ? "#fff" : colors.foreground },
                           ]}
                         >
@@ -529,6 +530,28 @@ const styles = StyleSheet.create({
   addFormLabel: { fontSize: 11, fontWeight: "700" },
   addInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   addCategoryRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  memberRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 12,
+    gap: 8,
+  },
+  memberChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  memberChipEmoji: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  memberChipLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
   miniChip: {
     flexDirection: "row",
     alignItems: "center",

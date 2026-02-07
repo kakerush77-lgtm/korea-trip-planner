@@ -359,13 +359,21 @@ export default function ShoppingScreen() {
                       style={({ pressed }) => [
                         styles.memberChip,
                         {
-                          backgroundColor: newMember === m.id ? colors.primary : colors.background,
+                          backgroundColor: newMember === m.id ? colors.primary : colors.surface,
                           borderColor: colors.border,
                         },
                         pressed && { opacity: 0.7 },
                       ]}
                     >
-                      <Text style={[styles.memberEmoji]}>{m.emoji}</Text>
+                      <Text style={styles.memberChipEmoji}>{m.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.memberChipLabel,
+                          { color: newMember === m.id ? "#fff" : colors.foreground },
+                        ]}
+                      >
+                        {m.name}
+                      </Text>
                     </Pressable>
                   ))}
                 </View>
@@ -499,19 +507,25 @@ const styles = StyleSheet.create({
   },
   memberRow: {
     flexDirection: "row",
-    gap: 8,
+    flexWrap: "wrap",
     marginBottom: 12,
+    gap: 8,
   },
   memberChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
   },
-  memberEmoji: {
-    fontSize: 20,
+  memberChipEmoji: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  memberChipLabel: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   imageSection: {
     marginBottom: 12,
