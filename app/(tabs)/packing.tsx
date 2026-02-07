@@ -123,7 +123,7 @@ export default function PackingScreen() {
         >
           <Pressable
             onPress={() => togglePackingItem(item.id)}
-            style={({ pressed }) => [styles.checkbox, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [styles.itemCheckbox, pressed && { opacity: 0.6 }]}
           >
             <MaterialIcons
               name={item.checked ? "check-box" : "check-box-outline-blank"}
@@ -315,7 +315,7 @@ export default function PackingScreen() {
         )}
 
         {/* Member filter */}
-        <View style={styles.filterRow}>
+        <View style={[styles.filterRow, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -336,16 +336,21 @@ export default function PackingScreen() {
                   style={[
                     styles.filterChip,
                     {
-                      backgroundColor: filterMember === m.id ? colors.primary : colors.surface,
-                      borderColor: filterMember === m.id ? colors.primary : colors.border,
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
                     },
                   ]}
                 >
+                  <View style={[styles.checkbox, { borderColor: colors.border }]}>
+                    {filterMember === m.id && (
+                      <MaterialIcons name="check" size={16} color={colors.primary} />
+                    )}
+                  </View>
                   <Text style={styles.filterIcon}>{m.emoji}</Text>
                   <Text
                     style={[
                       styles.filterText,
-                      { color: filterMember === m.id ? "#fff" : colors.foreground },
+                      { color: colors.foreground },
                     ]}
                   >
                     {m.name} ({count})
@@ -357,7 +362,7 @@ export default function PackingScreen() {
         </View>
 
         {/* Category filter */}
-        <View style={styles.filterRow}>
+        <View style={[styles.filterRow, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -375,16 +380,21 @@ export default function PackingScreen() {
                   style={[
                     styles.filterChip,
                     {
-                      backgroundColor: filterCategory === cat.value ? colors.primary : colors.surface,
-                      borderColor: filterCategory === cat.value ? colors.primary : colors.border,
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
                     },
                   ]}
                 >
+                  <View style={[styles.checkbox, { borderColor: colors.border }]}>
+                    {filterCategory === cat.value && (
+                      <MaterialIcons name="check" size={16} color={colors.primary} />
+                    )}
+                  </View>
                   <Text style={styles.filterIcon}>{cat.icon}</Text>
                   <Text
                     style={[
                       styles.filterText,
-                      { color: filterCategory === cat.value ? "#fff" : colors.foreground },
+                      { color: colors.foreground },
                     ]}
                   >
                     {cat.label} ({count})
@@ -484,6 +494,14 @@ const styles = StyleSheet.create({
     gap: 4,
     marginRight: 6,
   },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   filterIcon: { fontSize: 13 },
   filterText: { fontSize: 12, fontWeight: "600" },
   listContent: { padding: 16, paddingBottom: 100, gap: 6 },
@@ -495,7 +513,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     gap: 10,
   },
-  checkbox: { padding: 2 },
+  itemCheckbox: { padding: 2 },
   itemInfo: { flex: 1, gap: 2 },
   itemName: { fontSize: 15, fontWeight: "600" },
   itemNameChecked: { textDecorationLine: "line-through" },

@@ -1,6 +1,7 @@
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import { MemberId, Member } from "@/data/types";
 import { useColors } from "@/hooks/use-colors";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export interface MemberFilterProps {
   selectedMembers: MemberId[];
@@ -23,35 +24,31 @@ export function MemberFilter({
   const individualMembers = members.filter((m) => m.id !== "everyone");
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.container}
       >
-        {/* All button */}
+        {/* All checkbox */}
         <Pressable
           onPress={onSelectAll}
           style={({ pressed }) => [
             styles.chip,
-            isAllSelected
-              ? { backgroundColor: colors.primary }
-              : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+            { backgroundColor: colors.surface, borderColor: colors.border },
             pressed && { opacity: 0.7 },
           ]}
         >
+          <View style={[styles.checkbox, { borderColor: colors.border }]}>
+            {isAllSelected && (
+              <MaterialIcons name="check" size={16} color={colors.primary} />
+            )}
+          </View>
           <Text style={styles.chipEmoji}>{everyoneMember?.emoji ?? "🌈"}</Text>
-          <Text
-            style={[
-              styles.chipText,
-              { color: isAllSelected ? "#FFFFFF" : colors.foreground },
-            ]}
-          >
-            全員
-          </Text>
+          <Text style={[styles.chipText, { color: colors.foreground }]}>全員</Text>
         </Pressable>
 
-        {/* Individual members */}
+        {/* Individual members with checkboxes */}
         {individualMembers.map((member) => {
           const isSelected = selectedMembers.includes(member.id);
           return (
@@ -60,19 +57,17 @@ export function MemberFilter({
               onPress={() => onToggleMember(member.id)}
               style={({ pressed }) => [
                 styles.chip,
-                isSelected
-                  ? { backgroundColor: member.color }
-                  : { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+                { backgroundColor: colors.surface, borderColor: colors.border },
                 pressed && { opacity: 0.7 },
               ]}
             >
+              <View style={[styles.checkbox, { borderColor: colors.border }]}>
+                {isSelected && (
+                  <MaterialIcons name="check" size={16} color={colors.primary} />
+                )}
+              </View>
               <Text style={styles.chipEmoji}>{member.emoji}</Text>
-              <Text
-                style={[
-                  styles.chipText,
-                  { color: isSelected ? "#FFFFFF" : colors.foreground },
-                ]}
-              >
+              <Text style={[styles.chipText, { color: colors.foreground }]}>
                 {member.name}
               </Text>
             </Pressable>
@@ -85,7 +80,7 @@ export function MemberFilter({
 
 const styles = StyleSheet.create({
   wrapper: {
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   container: {
     paddingHorizontal: 16,
@@ -95,9 +90,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 20,
-    gap: 4,
+    borderWidth: 1,
+    gap: 6,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   chipEmoji: {
     fontSize: 15,

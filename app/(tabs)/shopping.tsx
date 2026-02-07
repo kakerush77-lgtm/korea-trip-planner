@@ -119,7 +119,7 @@ export default function ShoppingScreen() {
         ]}
       >
         <View style={styles.itemRow}>
-          <Pressable onPress={() => toggleShoppingItem(item.id)} style={styles.checkbox}>
+          <Pressable onPress={() => toggleShoppingItem(item.id)} style={styles.itemCheckbox}>
             <MaterialIcons
               name={item.bought ? "check-box" : "check-box-outline-blank"}
               size={24}
@@ -187,7 +187,7 @@ export default function ShoppingScreen() {
       </View>
 
       {/* Member Filter */}
-      <View style={styles.filterRow}>
+      <View style={[styles.filterRow, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
         <FlatList
           horizontal
           data={allMemberOptions}
@@ -200,17 +200,22 @@ export default function ShoppingScreen() {
               style={({ pressed }) => [
                 styles.filterChip,
                 {
-                  backgroundColor: filterMember === item.id ? colors.primary : colors.surface,
+                  backgroundColor: colors.surface,
                   borderColor: colors.border,
                 },
                 pressed && { opacity: 0.7 },
               ]}
             >
+              <View style={[styles.checkbox, { borderColor: colors.border }]}>
+                {filterMember === item.id && (
+                  <MaterialIcons name="check" size={16} color={colors.primary} />
+                )}
+              </View>
               <Text style={[styles.filterEmoji]}>{item.emoji}</Text>
               <Text
                 style={[
                   styles.filterName,
-                  { color: filterMember === item.id ? "#fff" : colors.foreground },
+                  { color: colors.foreground },
                 ]}
               >
                 {item.name}
@@ -375,6 +380,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 6,
   },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   filterEmoji: {
     fontSize: 16,
   },
@@ -489,7 +502,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
   },
-  checkbox: {
+  itemCheckbox: {
     paddingTop: 2,
   },
   itemHeader: {

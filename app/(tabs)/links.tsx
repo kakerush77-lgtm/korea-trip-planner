@@ -176,10 +176,20 @@ export default function LinksScreen() {
               </Text>
             </View>
           </View>
+          <Pressable
+            onPress={() => setShowAddForm(!showAddForm)}
+            style={({ pressed }) => [
+              styles.addButton,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <MaterialIcons name={showAddForm ? "close" : "add"} size={HEADER_CONSTANTS.ADD_ICON_SIZE} color="#fff" />
+          </Pressable>
         </View>
 
         {/* Member Filter */}
-        <View style={styles.filterContainer}>
+        <View style={[styles.filterContainer, { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
           <FlatList
             horizontal
             data={allMemberOptions}
@@ -191,17 +201,22 @@ export default function LinksScreen() {
                 style={({ pressed }) => [
                   styles.filterChip,
                   {
-                    backgroundColor: filterMember === m.id ? colors.primary : colors.surface,
+                    backgroundColor: colors.surface,
                     borderColor: colors.border,
                   },
                   pressed && { opacity: 0.7 },
                 ]}
               >
+                <View style={[styles.checkbox, { borderColor: colors.border }]}>
+                  {filterMember === m.id && (
+                    <MaterialIcons name="check" size={16} color={colors.primary} />
+                  )}
+                </View>
                 <Text style={styles.filterEmoji}>{m.emoji}</Text>
                 <Text
                   style={[
                     styles.filterLabel,
-                    { color: filterMember === m.id ? "#fff" : colors.foreground },
+                    { color: colors.foreground },
                   ]}
                 >
                   {m.name}
@@ -367,6 +382,7 @@ const styles = StyleSheet.create({
   homeButton: UNIFIED_HEADER_STYLES.homeButton,
   title: UNIFIED_HEADER_STYLES.headerTitle,
   subtitle: UNIFIED_HEADER_STYLES.headerSubtitle,
+  addButton: UNIFIED_HEADER_STYLES.addButton,
   filterContainer: {
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -379,10 +395,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
+    gap: 6,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterEmoji: {
     fontSize: 16,
-    marginRight: 6,
   },
   filterLabel: {
     fontSize: 14,
