@@ -1,3 +1,5 @@
+// Fallback for using MaterialIcons on Android and web.
+
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { SymbolWeight, SymbolViewProps } from "expo-symbols";
 import { ComponentProps } from "react";
@@ -6,40 +8,41 @@ import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
 type IconMapping = Record<SymbolViewProps["name"], ComponentProps<typeof MaterialIcons>["name"]>;
 type IconSymbolName = keyof typeof MAPPING;
 
+/**
+ * Add your SF Symbols to Material Icons mappings here.
+ * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
+ * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ */
 const MAPPING = {
   "house.fill": "home",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
-  "calendar": "event",
-  "person.2.fill": "group",
-  "map.fill": "map",
-  "clock.fill": "schedule",
-  "location.fill": "location-on",
   "airplane": "flight",
-  "fork.knife": "restaurant",
-  "cart.fill": "shopping-cart",
-  "heart.fill": "favorite",
-  "star.fill": "star",
-  "info.circle.fill": "info",
-  "suitcase.fill": "luggage",
-  "list.bullet": "format-list-bulleted",
-  "square.and.arrow.up": "share",
+  "person.fill": "person",
+  "map.fill": "map",
   "plus.circle.fill": "add-circle",
-  "trash.fill": "delete",
-  "pencil": "edit",
-  "checkmark.circle.fill": "check-circle",
-  "xmark.circle.fill": "cancel",
-  "link": "link",
-  "globe": "language",
-  "mappin.and.ellipse": "place",
-  "bag.fill": "shopping-bag",
-  "plus": "add",
+  "star.fill": "star",
   "gearshape.fill": "settings",
-  "arrow.down.doc.fill": "file-download",
-  "arrow.up.doc.fill": "file-upload",
+  "bell.fill": "notifications",
+  "arrow.left": "arrow-back",
+  "magnifyingglass": "search",
+  "xmark": "close",
+  "checkmark": "check",
+  "heart.fill": "favorite",
+  "calendar": "event",
+  "location.fill": "location-on",
+  "wallet.pass.fill": "account-balance-wallet",
+  "person.2.fill": "group",
+  "list.bullet": "list",
+  "clock.fill": "schedule",
 } as IconMapping;
 
+/**
+ * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
+ * This ensures a consistent look across platforms, and optimal resource usage.
+ * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
+ */
 export function IconSymbol({
   name,
   size = 24,

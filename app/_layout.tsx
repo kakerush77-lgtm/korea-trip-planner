@@ -1,6 +1,6 @@
 import "@/global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -18,7 +18,7 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
-import { AppProvider } from "@/lib/store";
+import { useAuth } from "@/hooks/use-auth";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -26,6 +26,28 @@ const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const inAuthGroup = segments[0] === "login" || segments[0] === "oauth";
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // Redirect to login
+      router.replace("/login");
+    } else if (isAuthenticated && inAuthGroup && segments[0] === "login") {
+      // Redirect to home
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated, loading, segments, router]);
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
@@ -56,9 +78,7 @@ export default function RootLayout() {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Disable automatic refetching on window focus for mobile
             refetchOnWindowFocus: false,
-            // Retry failed requests once
             retry: 1,
           },
         },
@@ -66,7 +86,7 @@ export default function RootLayout() {
   );
   const [trpcClient] = useState(() => createTRPCClient());
 
-  // Ensure minimum 8px padding for top and bottom on mobile
+  // Ensure minimum padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
     const metrics = initialWindowMetrics ?? { insets: initialInsets, frame: initialFrame };
     return {
@@ -81,26 +101,26 @@ export default function RootLayout() {
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppProvider>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
-          {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
-          {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="event-form" options={{ presentation: "modal" }} />
-            <Stack.Screen name="event-detail" options={{ presentation: "card" }} />
-            <Stack.Screen name="member-form" options={{ presentation: "modal" }} />
-            <Stack.Screen name="trip-form" options={{ presentation: "modal" }} />
-            <Stack.Screen name="day-manage" options={{ presentation: "modal" }} />
-            <Stack.Screen name="home" options={{ presentation: "modal" }} />
-            <Stack.Screen name="oauth/callback" />
-          </Stack>
+          <AuthGate>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen
+                name="login"
+                options={{ presentation: "fullScreenModal", gestureEnabled: false }}
+              />
+              <Stack.Screen
+                name="create-trip"
+                options={{ presentation: "fullScreenModal" }}
+              />
+              <Stack.Screen name="trip/[id]" />
+              <Stack.Screen name="oauth/callback" />
+            </Stack>
+          </AuthGate>
           <StatusBar style="auto" />
         </QueryClientProvider>
       </trpc.Provider>
-      </AppProvider>
     </GestureHandlerRootView>
   );
 

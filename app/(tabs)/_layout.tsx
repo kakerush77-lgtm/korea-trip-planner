@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Platform } from "react-native";
@@ -15,6 +16,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.muted,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -25,60 +27,27 @@ export default function TabLayout() {
           borderTopColor: colors.border,
           borderTopWidth: 0.5,
         },
-        tabBarLabelStyle: {
-          fontSize: 10,
-        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          href: null,
+          title: "ホーム",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="schedule"
+        name="trips"
         options={{
-          title: "スケジュール",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="calendar" color={color} />
-          ),
+          title: "しおり",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="airplane" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="links"
+        name="mypage"
         options={{
-          title: "リンク集",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="link" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="shopping"
-        options={{
-          title: "買いたい",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="bag.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="packing"
-        options={{
-          title: "持ち物",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="suitcase.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="members"
-        options={{
-          title: "メンバー",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="person.2.fill" color={color} />
-          ),
+          title: "マイページ",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.fill" color={color} />,
         }}
       />
     </Tabs>
